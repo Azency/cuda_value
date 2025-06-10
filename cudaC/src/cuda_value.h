@@ -5,9 +5,8 @@
 #include <curand_kernel.h>
 #include <math.h>
 #include <stdio.h>
-#include <iostream>
-#include <iomanip>
-#include <vector>
+#include <stdlib.h> 
+
 
 #define CUDA_CHECK(call)                                \
 do {                                                    \
@@ -82,7 +81,7 @@ __device__ float lookup_V(float X, float Y, float Z, int E);
 // Kernel 函数声明
 __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_t);
 
-__global__ void V_tp1_kernel(int offset, int t, float* d_V_tp1);
+__global__ void V_tp1_kernel(int offset, int t);
 
 // 随机数发生器
 __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHSs);
@@ -103,11 +102,6 @@ __host__ __device__ int IDX_V(int x, int y, int z, int e);
 void init_global_XYZEW_V();
 
 void clean_global_XYZEW_V();
-
-
-
-// 导出到python的函数
-float compute_l(float l, std::vector<float> trans_tau_d);
 
 
 #endif

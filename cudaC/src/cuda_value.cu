@@ -38,12 +38,12 @@ int *d_E;
 
 void init_global_XYZEW_V() {
     // 分配主机内存
-    float *h_X = new float[SIZE_X];
-    float *h_Y = new float[SIZE_Y];
-    float *h_Z = new float[SIZE_Z];
-    int *h_E = new int[SIZE_E];
-    float *h_W = new float[SIZE_W];
-    float *h_V = new float[SIZE_X * SIZE_Y * SIZE_Z * SIZE_E];
+    float *h_X = (float *)malloc(SIZE_X * sizeof(float));
+    float *h_Y = (float *)malloc(SIZE_Y * sizeof(float));
+    float *h_Z = (float *)malloc(SIZE_Z * sizeof(float));
+    int   *h_E = (int   *)malloc(SIZE_E * sizeof(int));
+    float *h_W = (float *)malloc(SIZE_W * sizeof(float));
+    float *h_V = (float *)malloc(SIZE_X * SIZE_Y * SIZE_Z * SIZE_E *sizeof(float));
     
     // 初始化 X, Y, Z, W 数组
     for (int i = 0; i < SIZE_X; i++) {
@@ -63,11 +63,10 @@ void init_global_XYZEW_V() {
     }
 
     // 初始化 V 数组
-    std::cout << "Initializing V array..." << std::endl;
+    printf("Initializing V array...\n");
     for (int x = 0; x < SIZE_X; x++) {
         for (int y = 0; y < SIZE_Y; y++) {
             for (int z = 0; z < SIZE_Z; z++) {
-                // std::cout << "compute min" << std::endl;
                 float min_ZY = fminf(h_Z[z], h_Y[y]);
                 float term = (h_Y[y] <= min_ZY) ? 
                             h_Y[y] : 
@@ -127,12 +126,12 @@ void init_global_XYZEW_V() {
     }
 
     // 释放主机内存
-    delete[] h_X;
-    delete[] h_Y;
-    delete[] h_Z;
-    delete[] h_E;
-    delete[] h_W;
-    delete[] h_V;
+    free(h_X);
+    free(h_Y);
+    free(h_Z);
+    free(h_E);
+    free(h_W);
+    free(h_V);
 }
 
 // 清理函数
@@ -172,17 +171,7 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
 
 
 // 设备函数实现
-__device__ float monte_carlo_simulation(
-    float XmW,           // X - W
-    float Y_tp1,         // Y(t+1)
-    float Z_tp1,         // Z(t+1)
-    int E_tp1,           // E(t+1)
-    float P_tau_tp1,     // P(tau=t+1)
-    float P_tau_gep_tp1, // P(tau>=t+1)
-    float l,             // 费用率
-    curandStatePhilox4_32_10_t * rng_states, // 随机数状态
-    int idx              // 线程索引
-) {
+__device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int E_tp1, float P_tau_tp1, float P_tau_gep_tp1, float l, curandStatePhilox4_32_10_t * rng_states, int idx) {
     float d_temp = 0.0f;
     curandStatePhilox4_32_10_t s = rng_states[idx];
     
@@ -344,86 +333,5 @@ __global__ void V_tp1_kernel(int offset, int t) {
     d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * fmaxf((Y - fminf(Z, Y)), 0.0f), X), max_w);
 }
 
-
-
-// 导出到python的函数
-float compute_l(float l, std::vector<float> trans_tau_d) {
-    int T = trans_tau_d.size();
-    float a3 = 1.00/(T/P);
-
-    // 这一段后续优化为宏
-    // MIN_XYZ, INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
-    int Y_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
-    float delta_z = (a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1;
-    int Z_index_2 = (int)fminf(Z_index_1 + 1, SIZE_Z - 1);
-
-
-    int index1 = IDX_V(X_index, Y_index, Z_index_1, 0);
-    int index2 = IDX_V(X_index, Y_index, Z_index_2, 0);
-
-    // 设置随机数生成器
-    curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = SIZE_X * SIZE_Y * SIZE_Z * SIZE_E * SIZE_W;
-    cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
-    setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
-
-    // 设置block和grid
-    dim3 block(1024);
-    dim3 grid((num_threads + block.x - 1) / block.x);
-
-    dim3 block2(1024);
-    dim3 grid2((SIZE_X * SIZE_Y * SIZE_Z * SIZE_E + block2.x - 1) / block2.x);
-
-    for (int t = T-1; t >= 0; t--) {
-        float P_tau_t = trans_tau_d[t];
-        
-        // 计算V(t)
-        XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-        cudaDeviceSynchronize();
-
-
-        // 计算W的最大值
-        V_tp1_kernel<<<grid2, block2>>>(0, t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-
-    }
-
-    float* h_V_tp1 = new float[SIZE_X * SIZE_Y * SIZE_Z * SIZE_E];
-    cudaMemcpy(h_V_tp1, d_V_tp1, SIZE_X * SIZE_Y * SIZE_Z * SIZE_E * sizeof(float), cudaMemcpyDeviceToHost);
-    for (int i = 0; i < SIZE_X * SIZE_Y * SIZE_Z * SIZE_E; i+=10) {
-        printf("h_V_tp1[%d] = %f\n", i, h_V_tp1[i]);
-    }
-
-    float output_1 = h_V_tp1[index1];
-    float output_2 = h_V_tp1[index2];
-    float output = output_1 + (output_2 - output_1)*delta_z;
-    printf("index1 = %d, index2 = %d\n", index1, index2);
-    printf("output_1 = %f, output_2 = %f\n", output_1, output_2);
-
-    printf("X_index = %d, Y_index = %d, Z_index_1 = %d, Z_index_2 = %d\n", X_index, Y_index, Z_index_1, Z_index_2);
-
-    float *h_X  = new float[SIZE_X];
-    float *h_Y  = new float[SIZE_Y];
-    float *h_Z  = new float[SIZE_Z];
-    cudaMemcpy(h_X, d_X, SIZE_X * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_Y, d_Y, SIZE_Y * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(h_Z, d_Z, SIZE_Z * sizeof(float), cudaMemcpyDeviceToHost);
-    printf("1---对应的账户值是：%f, %f, %f, %f\n", h_X[X_index], h_Y[Y_index], h_Z[Z_index_1], h_Z[Z_index_2]);
-    printf("2---对应的账户值是：%f, %f, %f, %f\n", h_X[X_index], h_Y[Y_index], h_Z[Z_index_1], h_Z[Z_index_2]);
-    delete[] h_X;
-    delete[] h_Y;
-    delete[] h_Z;
-
-    delete[] h_V_tp1;
-    cudaFree(d_rng_states);
-
-    return output;
-}
 
 
