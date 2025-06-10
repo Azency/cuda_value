@@ -1,0 +1,16 @@
+{
+    "name": "CUDA-12.4-Ampere",
+    "dockerFile": "Dockerfile",
+    "runArgs": ["--gpus", "all"],       // 让容器看见 GPU
+    "settings": {
+      "terminal.integrated.defaultProfile.linux": "bash"
+    },
+    "extensions": [
+      "ms-vscode.cpptools",
+      "ms-vscode.cmake-tools",
+      "nvidia.nsight-vscode-edition"
+    ],
+    "postCreateCommand": "cmake -S . -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "remoteUser": "vscode"
+  }
+  
