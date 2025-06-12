@@ -229,6 +229,8 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     float min_ZYt = fminf(Z, Y);
     float Y_tp1, Z_tp1;
 
+    int E_tp1 = 1 * (E + W == 0);
+
 
 
 
@@ -237,16 +239,16 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     // // ---------- 预先算好共用量 ----------
     const float invX  = __frcp_rn(X);               // 1/X  (更省时钟)
     const float XmW   = fmaxf(X - W, 0.0f);         // max(X-W,0)
-    const bool  wz    = (W == 0.0f);
-    const bool  ez    = (E == 0);
+    const bool  wz    = (W == 0);
+    const bool  ez    = (E_tp1 == 0);
     const bool  wle   = (W <= min_ZYt);
 
     // ---------- path-specific候选值 ----------
     const float Y00 = (1.0f + A2) * fmaxf(X,        Y);          // W==0 && E==0
-    const float Z00 = (1.0f + A2) * fmaxf(a3 * X,   Y);
+    const float Z00 = (1.0f + A2) * fmaxf(a3 * X,   Z);
 
     const float Y01 =                fmaxf(X,        Y);          // W==0 && E>0
-    const float Z01 =                fmaxf(a3 * X,   Y);
+    const float Z01 =                fmaxf(a3 * X,   Z);
 
     const float Y10 = fmaxf(XmW,      Y - W);                     // W>0 && W<=min_ZYt
     const float Z10 = fmaxf(a3 * XmW, Z);
@@ -271,7 +273,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
     float P_tau_tp1 = 1 - P_tau_gep_tp1;
 
-    int E_tp1 = E + (int)W;
+ 
 
     // //Monte Carlo 模拟
     float d_temp = monte_carlo_simulation(

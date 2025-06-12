@@ -33,10 +33,30 @@ static PyObject *py_compute_l(PyObject *self, PyObject *args)
     return PyFloat_FromDouble((double)out);
 }
 
+static PyObject *init_global_XYZEW_V(PyObject *self, PyObject *args)
+/*  Python 端签名：compute_l(l : float, tau : 1-D numpy.float32) -> float  */
+{
+
+    /* 调 CUDA 实现（它自己负责把数据复制进 GPU） */
+    pyinit_global_XYZEW_V();
+
+    return Py_None;
+}
+
+static PyObject *clean_global_XYZEW_V(PyObject *self, PyObject *args)
+{
+    pyclean_global_XYZEW_V();
+    return Py_None;
+}
+
 /* ---------------- 模块对象 ---------------- */
 static PyMethodDef Methods[] = {
     {"compute_l", py_compute_l, METH_VARARGS,
      "compute_l(l, tau) -> float  (CUDA accelerated)"},
+    {"init_global_XYZEW_V", init_global_XYZEW_V, METH_VARARGS,
+     "init_global_XYZEW_V() -> None"},
+    {"clean_global_XYZEW_V", clean_global_XYZEW_V, METH_VARARGS,
+     "clean_global_XYZEW_V() -> None"},
     {NULL, NULL, 0, NULL}
 };
 

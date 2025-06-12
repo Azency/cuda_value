@@ -5,11 +5,11 @@
 extern "C" 
 float compute_l(float l, float * trans_tau_d, int T) {
 
-    printf("calling is start\n");
+    // printf("calling is start\n");
 
-    init_global_XYZEW_V();
+    // init_global_XYZEW_V();
 
-    printf("init_global_XYZEW_V is done\n");
+    // printf("init_global_XYZEW_V is done\n");
     
     float a3 = 1.00/(T/P);
 
@@ -86,7 +86,19 @@ float compute_l(float l, float * trans_tau_d, int T) {
 
 
     cudaFree(d_rng_states);
-    clean_global_XYZEW_V();
+    // clean_global_XYZEW_V();
 
     return output;
+}
+
+
+
+extern "C"
+void pyinit_global_XYZEW_V() {
+    init_global_XYZEW_V();
+}
+
+extern "C"
+void pyclean_global_XYZEW_V() {
+    clean_global_XYZEW_V();
 }

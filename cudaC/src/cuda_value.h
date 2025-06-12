@@ -99,6 +99,7 @@ __constant__ int *d_d_E;
 
 
 __host__ __device__ int IDX_V(int x, int y, int z, int e);
+
 void init_global_XYZEW_V();
 
 void clean_global_XYZEW_V();
