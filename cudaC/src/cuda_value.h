@@ -3,6 +3,7 @@
 
 #include <cuda_runtime.h>
 #include <curand_kernel.h>
+#include "config.h"
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h> 
@@ -18,51 +19,9 @@ do {                                                    \
     }                                                   \
 } while(0)
 
-// 定义常量宏 start
-#define A1 0.15f
-#define A2 0.025f
-#define R 0.05f
-
-#define MU 0.05f
-#define SIGMA 0.2f
-#define MOTECALO_NUMS 10000
-
-#define MIN_XYZ 0
-#define MAX_X 100
-#define MAX_Y 100
-#define MAX_Z 100
-#define MAX_W 100
 
 
-#define SIZE_X 21
-#define SIZE_Y 21
-#define SIZE_Z 21
-#define SIZE_E 2
-#define SIZE_W 21
-// 定义常量宏 end
 
-#define SCALE_TO_INT_X ((float)(SIZE_X-1) / (MAX_X - MIN_XYZ))
-#define SCALE_TO_INT_Y ((float)(SIZE_Y-1) / (MAX_Y - MIN_XYZ))
-#define SCALE_TO_INT_Z ((float)(SIZE_Z-1) / (MAX_Z - MIN_XYZ))
-
-#define sXYZEW (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
-#define sYZEW (SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
-#define sZEW (SIZE_Z*SIZE_E*SIZE_W)
-#define sEW (SIZE_E*SIZE_W)
-#define sW (SIZE_W)
-
-#define sXYZE (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E)
-#define sYZE (SIZE_Y*SIZE_Z*SIZE_E)
-#define sZE (SIZE_Z*SIZE_E)
-#define sE (SIZE_E)
-
-
-#define X0 67
-#define X_END 92
-#define P 1
-#define Q 1
-#define INITIAL_INVESTMENT 100.0f
-#define DELTA_T 1.0f/P
 
 // 设备函数声明
 __device__ float monte_carlo_simulation(
@@ -92,14 +51,20 @@ void init_random_state(curandStatePhilox4_32_10_t *state, unsigned long seed, in
 
 
 // 辅助函数声明
-extern float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1, *d_results;
-extern int *d_E;
 
-__constant__ float *d_d_X, *d_d_Y, *d_d_Z, *d_d_W, *d_d_V, *d_d_V_tp1, *d_d_results;
-__constant__ int *d_d_E;
 
 
 __host__ __device__ int IDX_V(int x, int y, int z, int e);
+
+__host__ int h_IDX_V(int x, int y, int z, int e);
+
+void init_global_config(
+    int min_X, int max_X, int size_X,
+    int min_Y, int max_Y, int size_Y,
+    int min_Z, int max_Z, int size_Z,
+    int min_E, int max_E, int size_E,
+    int min_W, int max_W, int size_W
+);
 
 void init_global_XYZEW_V();
 

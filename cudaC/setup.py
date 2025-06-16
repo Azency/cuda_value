@@ -16,6 +16,7 @@ class CUDAExtension(Extension):
                              "src"]                       # 可按需调整
         self.library_dirs = [os.path.join(CUDA_HOME, "lib64")]
         self.libraries    = ["cudart"]
+        # self.marco_params_path = "src/config.txt"
 
 class BuildExt(build_ext):
     def build_extension(self, ext):
@@ -27,6 +28,9 @@ class BuildExt(build_ext):
                 objects.append(self.compile_host(src, ext))
         self.link(ext, objects)
 
+    # --------- 定义编译前定义宏参数 ---------
+    def define_macro_params(self, ext):
+        pass
     # -------- nvcc 编译 .cu → .o --------
     def compile_cuda(self, src, ext):
         obj_path = self.obj_path(src)

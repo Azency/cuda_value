@@ -31,10 +31,182 @@ __host__ __device__ int IDX_V(int x, int y, int z, int e) {
     return (x*sYZE + y*sZE + z*sE + e);
 }
 
+__host__ int h_IDX_V(int x, int y, int z, int e){
+    return (x*h_sYZE + y*h_sZE + z*h_sE + e);
+}
+
 // cuda_value.cu
+int h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
+int h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
+int h_SIZE_X, h_SIZE_Y, h_SIZE_Z, h_SIZE_E, h_SIZE_W;
+int h_sXYZEW, h_sYZEW, h_sZEW, h_sEW, h_sW;
+int h_sXYZE, h_sYZE, h_sZE, h_sE;
+float h_SCALE_TO_INT_X, h_SCALE_TO_INT_Y, h_SCALE_TO_INT_Z;
+
 float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1, *d_results;
 int *d_E;
 
+void init_global_config(
+    int min_X, int max_X, int size_X,
+    int min_Y, int max_Y, int size_Y,
+    int min_Z, int max_Z, int size_Z,
+    int min_E, int max_E, int size_E,
+    int min_W, int max_W, int size_W
+){
+    h_MIN_X = min_X;
+    h_MAX_X = max_X;
+    h_SIZE_X = size_X;
+    h_MIN_Y = min_Y;
+    h_MAX_Y = max_Y;
+    h_SIZE_Y = size_Y;
+    h_MIN_Z = min_Z;
+    h_MAX_Z = max_Z;
+    h_SIZE_Z = size_Z;
+    h_SIZE_E = size_E;
+    h_MIN_W = min_W;
+    h_MAX_W = max_W;
+    h_SIZE_W = size_W;
+
+    h_sXYZEW = size_X * size_Y * size_Z * size_E * size_W;
+    h_sYZEW = size_Y * size_Z * size_E * size_W;
+    h_sZEW = size_Z * size_E * size_W;
+    h_sEW = size_E * size_W;
+    h_sW = size_W;
+
+    h_sXYZE = size_X * size_Y * size_Z * size_E;   
+    h_sYZE = size_Y * size_Z * size_E;
+    h_sZE = size_Z * size_E;
+    h_sE = size_E;
+
+    h_SCALE_TO_INT_X = (float)(size_X-1) / (max_X - min_X);
+    h_SCALE_TO_INT_Y = (float)(size_Y-1) / (max_Y - min_Y);
+    h_SCALE_TO_INT_Z = (float)(size_Z-1) / (max_Z - min_Z);
+
+    cudaMemcpyToSymbolAsync(d_MIN_X, &h_MIN_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_X, &h_MAX_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_X, &h_SIZE_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_Y, &h_MIN_Y, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_Y, &h_MAX_Y, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_Y, &h_SIZE_Y, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_Z, &h_MIN_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_Z, &h_MAX_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_Z, &h_SIZE_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_W, &h_MIN_W, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_W, &h_MAX_W, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_W, &h_SIZE_W, sizeof(int));
+
+    cudaMemcpyToSymbolAsync(d_sXYZEW, &h_sXYZEW, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sYZEW, &h_sYZEW, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sZEW, &h_sZEW, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sEW, &h_sEW, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sW, &h_sW, sizeof(int));
+
+    cudaMemcpyToSymbolAsync(d_sXYZE, &h_sXYZE, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sYZE, &h_sYZE, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sZE, &h_sZE, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_sE, &h_sE, sizeof(int));
+
+    cudaMemcpyToSymbolAsync(d_SCALE_TO_INT_X, &h_SCALE_TO_INT_X, sizeof(float));
+    cudaMemcpyToSymbolAsync(d_SCALE_TO_INT_Y, &h_SCALE_TO_INT_Y, sizeof(float));
+    cudaMemcpyToSymbolAsync(d_SCALE_TO_INT_Z, &h_SCALE_TO_INT_Z, sizeof(float));
+
+
+    // 初始化XYZEW_V
+    float *h_X = (float *)malloc(h_SIZE_X * sizeof(float));
+    float *h_Y = (float *)malloc(h_SIZE_Y * sizeof(float));
+    float *h_Z = (float *)malloc(h_SIZE_Z * sizeof(float));
+    int   *h_E = (int   *)malloc(h_SIZE_E * sizeof(int));
+    float *h_W = (float *)malloc(h_SIZE_W * sizeof(float));
+    float *h_V = (float *)malloc(h_sXYZE * sizeof(float));
+    
+    for (int i = 0; i < h_SIZE_X; i++) {
+        h_X[i] = h_MIN_X + (h_MAX_X - h_MIN_X) * i / (h_SIZE_X - 1);
+    }
+    for (int i = 0; i < h_SIZE_Y; i++) {
+        h_Y[i] = h_MIN_Y + (h_MAX_Y - h_MIN_Y) * i / (h_SIZE_Y - 1);
+    }
+    for (int i = 0; i < h_SIZE_Z; i++) {
+        h_Z[i] = h_MIN_Z + (h_MAX_Z - h_MIN_Z) * i / (h_SIZE_Z - 1);
+    }
+    for (int i = 0; i < h_SIZE_E; i++) {
+        h_E[i] = i;
+    }
+    for (int i = 0; i < h_SIZE_W; i++) {
+        h_W[i] = h_MIN_W + (h_MAX_W - h_MIN_W) * i / (h_SIZE_W - 1);
+    }
+
+    // 初始化 V 数组
+    printf("Initializing V array...\n");
+    for (int x = 0; x < h_SIZE_X; x++) {
+        for (int y = 0; y < h_SIZE_Y; y++) {
+            for (int z = 0; z < h_SIZE_Z; z++) {
+                float min_ZY = fminf(h_Z[z], h_Y[y]);
+                float term = (h_Y[y] <= min_ZY) ? 
+                            h_Y[y] : 
+                            h_Y[y] - A1 * (h_Y[y] - min_ZY);
+                float result = fmaxf(h_X[x], term);
+                
+                // 对 E 的两个维度都赋值
+                h_V[h_IDX_V(x, y, z, 0)] = result;
+                h_V[h_IDX_V(x, y, z, 1)] = result;
+            }
+        }
+    }
+
+    printf("V array initialized\n");
+
+    // 分配设备内存
+    cudaMalloc(&d_X, h_SIZE_X * sizeof(float));
+    cudaMalloc(&d_Y, h_SIZE_Y * sizeof(float));
+    cudaMalloc(&d_Z, h_SIZE_Z * sizeof(float)); 
+    cudaMalloc(&d_E, h_SIZE_E * sizeof(int));
+    cudaMalloc(&d_W, h_SIZE_W * sizeof(float));
+    cudaMalloc(&d_V, h_sXYZE * sizeof(float));
+    cudaMalloc(&d_V_tp1, h_sXYZE * sizeof(float));
+    cudaMalloc(&d_results, h_sXYZEW * sizeof(float));
+    printf("cudamalloc done\n");
+    // 检查内存分配是否成功
+    // if (!d_X || !d_Y || !d_Z || !d_E || !d_W || !d_V || !d_V_tp1 || !d_results) {
+    //     printf("Error: Failed to allocate device memory\n");
+    //     clean_global_XYZEW_V();
+    //     exit(1);
+    // }
+
+    
+
+    // 复制数据到设备
+    cudaMemcpy(d_X, h_X, h_SIZE_X * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_Y, h_Y, h_SIZE_Y * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_Z, h_Z, h_SIZE_Z * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_E, h_E, h_SIZE_E * sizeof(int), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_W, h_W, h_SIZE_W * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_V, h_V, h_sXYZE * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_V_tp1, h_V, h_sXYZE * sizeof(float), cudaMemcpyHostToDevice);
+    
+
+    // 将主机端指针值复制到设备端全局变量
+    cudaMemcpyToSymbolAsync(d_d_X, &d_X, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_Y, &d_Y, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_Z, &d_Z, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_E, &d_E, sizeof(int*));
+    cudaMemcpyToSymbolAsync(d_d_W, &d_W, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_V, &d_V, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_V_tp1, &d_V_tp1, sizeof(float*));
+    cudaMemcpyToSymbolAsync(d_d_results, &d_results, sizeof(float*));
+
+    printf("init_global_XYZEW_V is done\n");
+
+
+
+    // 释放主机内存
+    free(h_X);
+    free(h_Y);
+    free(h_Z);
+    free(h_E);
+    free(h_W);
+    free(h_V);
+
+}
 
 void init_global_XYZEW_V() {
     // 分配主机内存
@@ -125,6 +297,9 @@ void init_global_XYZEW_V() {
         exit(1);
     }
 
+
+
+
     // 释放主机内存
     free(h_X);
     free(h_Y);
@@ -153,6 +328,8 @@ void clean_global_XYZEW_V() {
     d_V = nullptr;
     d_V_tp1 = nullptr;
     d_results = nullptr;
+
+    printf("clean_global_XYZEW_V is done\n");
 }   
 
 
