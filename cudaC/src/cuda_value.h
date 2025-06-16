@@ -18,7 +18,7 @@ do {                                                    \
     }                                                   \
 } while(0)
 
-// 常量定义
+// 定义常量宏 start
 #define A1 0.15f
 #define A2 0.025f
 #define R 0.05f
@@ -39,6 +39,7 @@ do {                                                    \
 #define SIZE_Z 21
 #define SIZE_E 2
 #define SIZE_W 21
+// 定义常量宏 end
 
 #define SCALE_TO_INT_X ((float)(SIZE_X-1) / (MAX_X - MIN_XYZ))
 #define SCALE_TO_INT_Y ((float)(SIZE_Y-1) / (MAX_Y - MIN_XYZ))
@@ -104,5 +105,6 @@ void init_global_XYZEW_V();
 
 void clean_global_XYZEW_V();
 
+void reset_Vtp1();
 
 #endif

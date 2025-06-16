@@ -51,12 +51,31 @@ initial_investment = 100.0
 min_XYZ = 0
 max_X = 100
 max_Y = 100
+max_Z = 100
 max_W = 100
+
 size_X = 21
 size_Y = 21
 size_Z = 21
 size_E = 2
 size_W = 21
+
+sXYZEW = size_X * size_Y * size_Z * size_E * size_W
+sYZEW = size_Y * size_Z * size_E * size_W
+sZEW = size_Z * size_E * size_W
+sEW = size_E * size_W
+sW = size_W
+
+sXYZE = size_X * size_Y * size_Z * size_E
+sYZE = size_Y * size_Z * size_E
+sZE = size_Z * size_E
+sE = size_E
+
+scale_to_int_X = float(size_X-1)/(max_X-min_XYZ)
+scale_to_int_Y = float(size_Y-1)/(max_Y-min_XYZ)
+scale_to_int_Z = float(size_Z-1)/(max_Z-min_XYZ)
+
+
 
 def init_global_XYZEW_V():
     # 将0-10的区间均匀分成X_size份
@@ -94,9 +113,7 @@ def init_global_XYZEW_V():
     d_W = cuda.to_device(W)
 
 
-scale_to_int = float(size_X-1)/(max_X-min_XYZ)
-scale_to_int_X = float(size_X-1)/(max_X-min_XYZ)
-scale_to_int_Y = float(size_Y-1)/(max_Y-min_XYZ)
+
 # @cuda.jit(device=True)
 # def __lookup_V__(d_V, X, Y, Z, E):
 #     X_int = int(math.floor((X - min_XYZ) * scale_to_int))
@@ -160,21 +177,29 @@ def __lookup_V__(
 @cuda.jit
 def XYZEW_kernel(offset, d_results, rng_states, d_P_tau, l, a3, t, d_V, d_X, d_Y, d_Z, d_E, d_W):
     idx = cuda.grid(1) + offset
-    if idx >= size_X * size_Y * size_Z * size_E * size_W:
+    if idx >= sXYZEW:
         return
     
-    
-    index_x = idx // (size_Y * size_Z * size_E * size_W)
-    index_y = (idx - index_x * (size_Y * size_Z * size_E * size_W)) // (size_Z * size_E * size_W)
-    index_z = (idx - index_x * (size_Y * size_Z * size_E * size_W) - index_y * (size_Z * size_E * size_W)) // (size_E * size_W)
-    index_e = (idx - index_x * (size_Y * size_Z * size_E * size_W) - index_y * (size_Z * size_E * size_W) - index_z * (size_E * size_W)) // size_W
-    index_w = idx - index_x * (size_Y * size_Z * size_E * size_W) - index_y * (size_Z * size_E * size_W) - index_z * (size_E * size_W) - index_e * size_W
+    index_x = idx / sYZEW
+    remainder = idx % sYZEW
+    index_y = remainder / sZEW
+    remainder = remainder % sZEW
+    index_z = remainder / sEW
+    remainder = remainder % sEW
+    index_e = remainder / sW
+    index_w = remainder % sW
 
     X = d_X[index_x]
     Y = d_Y[index_y]
     Z = d_Z[index_z]
     E = d_E[index_e]
     W = d_W[index_w]
+
+    min_ZYt = min(Z, Y)
+
+    E_tp1 = 1 * (E + W == 0)
+
+
 
     if W <= Y:
         d_temp = 0.0

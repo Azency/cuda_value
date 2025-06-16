@@ -4,7 +4,10 @@
 #include <numpy/arrayobject.h>
 
 /* 由 computel.cu 导出的符号（保持 C 名字） */
-extern float compute_l(float l, float *trans_tau_d, int T);
+extern float pycompute_l(float l, float *trans_tau_d, int T);
+extern void pyinit_global_XYZEW_V();
+extern void pyclean_global_XYZEW_V();
+extern void pyreset_Vtp1();
 
 /* ---------------- python -> C 桥 ---------------- */
 static PyObject *py_compute_l(PyObject *self, PyObject *args)
@@ -27,7 +30,7 @@ static PyObject *py_compute_l(PyObject *self, PyObject *args)
     float *ptr = (float *)PyArray_DATA(tau_arr);
 
     /* 调 CUDA 实现（它自己负责把数据复制进 GPU） */
-    float out = compute_l((float)l, ptr, T);
+    float out = pycompute_l((float)l, ptr, T);
 
     Py_DECREF(tau_arr);
     return PyFloat_FromDouble((double)out);
@@ -49,6 +52,12 @@ static PyObject *clean_global_XYZEW_V(PyObject *self, PyObject *args)
     return Py_None;
 }
 
+static PyObject *reset_Vtp1(PyObject *self, PyObject *args)
+{
+    pyreset_Vtp1();
+    return Py_None;
+}
+
 /* ---------------- 模块对象 ---------------- */
 static PyMethodDef Methods[] = {
     {"compute_l", py_compute_l, METH_VARARGS,
@@ -57,6 +66,8 @@ static PyMethodDef Methods[] = {
      "init_global_XYZEW_V() -> None"},
     {"clean_global_XYZEW_V", clean_global_XYZEW_V, METH_VARARGS,
      "clean_global_XYZEW_V() -> None"},
+    {"reset_Vtp1", reset_Vtp1, METH_VARARGS,
+     "reset_Vtp1() -> None"},
     {NULL, NULL, 0, NULL}
 };
 

@@ -3,13 +3,8 @@
 
 // 导出到python的函数
 extern "C" 
-float compute_l(float l, float * trans_tau_d, int T) {
+float pycompute_l(float l, float * trans_tau_d, int T) {
 
-    // printf("calling is start\n");
-
-    // init_global_XYZEW_V();
-
-    // printf("init_global_XYZEW_V is done\n");
     
     float a3 = 1.00/(T/P);
 
@@ -18,7 +13,7 @@ float compute_l(float l, float * trans_tau_d, int T) {
     int X_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
     int Y_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
     int Z_index_1 = (int)floorf((a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
-    float delta_z = (a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1;
+    float delta_z = (a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1; 
     int Z_index_2 = (int)fminf(Z_index_1 + 1, SIZE_Z - 1);
 
 
@@ -31,7 +26,7 @@ float compute_l(float l, float * trans_tau_d, int T) {
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
-    printf("setup is done\n");
+    printf("random setup is done\n");
 
 
     // 设置block和grid
@@ -41,30 +36,27 @@ float compute_l(float l, float * trans_tau_d, int T) {
     dim3 block2(1024);
     dim3 grid2((SIZE_X * SIZE_Y * SIZE_Z * SIZE_E + block2.x - 1) / block2.x);
 
-    
+    printf("kernel is start \n");
     for (int t = T-1; t >= 0; t--) {
         
 
         float P_tau_t = trans_tau_d[t];
-        
-        printf("kernel is start %d\n", t);
+
         // 计算V(t)
         XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-        cudaDeviceSynchronize();
 
-        printf("kernel1 is done %d\n", t);
         
         // 计算W的最大值
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
-        printf("kernel2 is done %d\n", t);
 
 
     }
+    printf("kernel is done \n");
 
     float out1, out2;
     cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
@@ -101,4 +93,9 @@ void pyinit_global_XYZEW_V() {
 extern "C"
 void pyclean_global_XYZEW_V() {
     clean_global_XYZEW_V();
+}
+
+extern "C"
+void pyreset_Vtp1() {
+    reset_Vtp1();
 }

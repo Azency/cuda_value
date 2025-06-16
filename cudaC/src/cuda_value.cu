@@ -156,6 +156,14 @@ void clean_global_XYZEW_V() {
 }   
 
 
+// 一轮计算后重置Vtp1
+void reset_Vtp1() {
+    cudaMemcpy(d_V_tp1, d_V, sXYZE * sizeof(float), cudaMemcpyDeviceToDevice);
+}
+
+
+
+
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
     float scale_to_int = (float)SIZE_X / (MAX_X - MIN_XYZ);

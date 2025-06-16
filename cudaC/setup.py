@@ -4,6 +4,7 @@ from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 CUDA_HOME = os.environ.get("CUDA_HOME", "/usr/local/cuda")  # 可自行 export
+CONDA_PREFIX = os.environ.get("CONDA_PREFIX", "/home/pengbo/miniconda3")
 
 class CUDAExtension(Extension):
     """简单占位，不做任何编译"""
@@ -11,7 +12,7 @@ class CUDAExtension(Extension):
         super().__init__(name, sources=sources)
         self.include_dirs = [numpy.get_include(),
                              os.path.join(CUDA_HOME, "include"),
-                             "/home/pengbo/miniconda3/include/python3.12",
+                             os.path.join(CONDA_PREFIX, "include/python3.12"),
                              "src"]                       # 可按需调整
         self.library_dirs = [os.path.join(CUDA_HOME, "lib64")]
         self.libraries    = ["cudart"]
@@ -81,7 +82,7 @@ setup(
     version="0.1.0",
     ext_modules=[CUDAExtension("compute_l",
         ["src/wrapper.c",          # CPython 接口
-         "src/computel.cu",        # 你给出的主逻辑
+         "src/pycomputel.cu",        # 你给出的主逻辑
          "src/cuda_value.cu" ])],  # 其它 kernel & 工具
     cmdclass={"build_ext": BuildExt},
     zip_safe=False,
