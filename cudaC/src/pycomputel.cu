@@ -6,23 +6,23 @@ extern "C"
 float pycompute_l(float l, float * trans_tau_d, int T) {
 
     
-    float a3 = 1.00/(T/P);
+    float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
     // MIN_XYZ, INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
-    int Y_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
-    float delta_z = (a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1; 
-    int Z_index_2 = (int)fminf(Z_index_1 + 1, SIZE_Z - 1);
+    int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
+    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
+    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_Z - Z_index_1; 
+    int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
 
-    int index1 = IDX_V(X_index, Y_index, Z_index_1, 0);
-    int index2 = IDX_V(X_index, Y_index, Z_index_2, 0);
+    int index1 = h_IDX_V(X_index, Y_index, Z_index_1, 0);
+    int index2 = h_IDX_V(X_index, Y_index, Z_index_2, 0);
 
     // 设置随机数生成器
     curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = SIZE_X * SIZE_Y * SIZE_Z * SIZE_E * SIZE_W;
+    int num_threads = h_sXYZEW;
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
@@ -34,7 +34,7 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
     dim3 grid((num_threads + block.x - 1) / block.x);
 
     dim3 block2(1024);
-    dim3 grid2((SIZE_X * SIZE_Y * SIZE_Z * SIZE_E + block2.x - 1) / block2.x);
+    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
 
     printf("kernel is start \n");
     for (int t = T-1; t >= 0; t--) {

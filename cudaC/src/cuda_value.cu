@@ -22,13 +22,13 @@ void init_random_state(curandStatePhilox4_32_10_t *d_state, unsigned long seed, 
 // __device__ __host__ float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1;
 // __device__ __host__ int *d_E;
 
-__host__ __device__ int IDX_V(int x, int y, int z, int e) {
+__device__ int IDX_V(int x, int y, int z, int e) {
     // if(x*sYZEW + y*sZEW + z*sEW + e*sW + e >= SIZE_X * SIZE_Y * SIZE_Z * SIZE_E) {
     //     printf("Error: Index out of bounds\n");
     //     exit(1);
     // }
     
-    return (x*sYZE + y*sZE + z*sE + e);
+    return (x*d_sYZE + y*d_sZE + z*d_sE + e);
 }
 
 __host__ int h_IDX_V(int x, int y, int z, int e){
@@ -44,7 +44,7 @@ int h_sXYZE, h_sYZE, h_sZE, h_sE;
 float h_SCALE_TO_INT_X, h_SCALE_TO_INT_Y, h_SCALE_TO_INT_Z;
 
 
-float h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
+float h_A1, h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
 
 
 float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1, *d_results;
@@ -59,7 +59,7 @@ void init_global_config(
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 ){
     
-    float h_A1 = a1;
+    h_A1 = a1;
     cudaMemcpyToSymbolAsync(d_A1, &h_A1, sizeof(float));
     float h_A2 = a2;
     cudaMemcpyToSymbolAsync(d_A2, &h_A2, sizeof(float));
@@ -173,7 +173,7 @@ void init_global_XYZEW_V() {
                 float min_ZY = fminf(h_Z[z], h_Y[y]);
                 float term = (h_Y[y] <= min_ZY) ? 
                             h_Y[y] : 
-                            h_Y[y] - A1 * (h_Y[y] - min_ZY);
+                            h_Y[y] - h_A1 * (h_Y[y] - min_ZY);
                 float result = fmaxf(h_X[x], term);
                 
                 // 对 E 的两个维度都赋值
@@ -264,7 +264,7 @@ void clean_global_XYZEW_V() {
 
 // 一轮计算后重置Vtp1
 void reset_Vtp1() {
-    cudaMemcpy(d_V_tp1, d_V, sXYZE * sizeof(float), cudaMemcpyDeviceToDevice);
+    cudaMemcpy(d_V_tp1, d_V, h_sXYZE * sizeof(float), cudaMemcpyDeviceToDevice);
 }
 
 
@@ -272,11 +272,10 @@ void reset_Vtp1() {
 
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
-    float scale_to_int = (float)SIZE_X / (MAX_X - MIN_XYZ);
-    
-    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int);
-    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int);
-    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int);
+
+    int X_int = (int)floorf((X - d_MIN_X) * d_SCALE_TO_INT_X);
+    int Y_int = (int)floorf((Y - d_MIN_Y) * d_SCALE_TO_INT_Y);
+    int Z_int = (int)floorf((Z - d_MIN_Z) * d_SCALE_TO_INT_Z);
     int E_int = E;
     
     return d_d_V_tp1[IDX_V(X_int, Y_int, Z_int, E_int)];
@@ -286,172 +285,6 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
 
 // 设备函数实现
 __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int E_tp1, float P_tau_tp1, float P_tau_gep_tp1, float l, curandStatePhilox4_32_10_t * rng_states, int idx) {
-    float d_temp = 0.0f;
-    curandStatePhilox4_32_10_t s = rng_states[idx];
-    
-    // 预计算常用值
-    const float exp_term = expf((MU - l - 0.5f * SIGMA * SIGMA) * DELTA_T);
-    const float sqrt_delta_t = sqrtf(DELTA_T);
-    const float discount_factor = expf(-R * DELTA_T);
-    
-    // Monte Carlo 模拟
-    for (int i = 0; i < MOTECALO_NUMS; i++) {
-        // 生成随机数
-        float random = curand_normal(&s);
-        
-        // d_temp += 1000 * random;
-
-        // 计算 X(t+1)
-        float X_tp1 = XmW * exp_term * expf(SIGMA * sqrt_delta_t * random);
-        X_tp1 = fminf(X_tp1, MAX_X);
-        
-        // 查找值函数
-        float V_tp1 = lookup_V(X_tp1, Y_tp1, Z_tp1, E_tp1);
-        
-        // 累加结果
-        d_temp += discount_factor * (P_tau_tp1 * fmaxf(X_tp1, Y_tp1) + 
-                                   P_tau_gep_tp1 * V_tp1);
-    }
-
-    rng_states[idx] = s;
-    
-    return d_temp ;
-}
-
-// XYZEW kernel 实现
-__global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
-    if (idx >= sXYZEW) return;
-
-    // 计算索引
-    int index_x = idx / sYZEW;
-    int remainder = idx % sYZEW;
-    int index_y = remainder / sZEW;
-    remainder = remainder % sZEW;
-    int index_z = remainder / sEW;
-    remainder = remainder % sEW;
-    int index_e = remainder / sW;
-    int index_w = remainder % sW;
-
-    // 获取值
-    float X = d_d_X[index_x];
-    float Y = d_d_Y[index_y];
-    float Z = d_d_Z[index_z];
-    int E = d_d_E[index_e];
-    float W = d_d_W[index_w];
-
-    float min_ZYt = fminf(Z, Y);
-    float Y_tp1, Z_tp1;
-
-    int E_tp1 = 1 * (E + W == 0);
-
-
-
-
-
-    // 优化
-    // // ---------- 预先算好共用量 ----------
-    const float invX  = __frcp_rn(X);               // 1/X  (更省时钟)
-    const float XmW   = fmaxf(X - W, 0.0f);         // max(X-W,0)
-    const bool  wz    = (W == 0);
-    const bool  ez    = (E_tp1 == 0);
-    const bool  wle   = (W <= min_ZYt);
-
-    // ---------- path-specific候选值 ----------
-    const float Y00 = (1.0f + A2) * fmaxf(X,        Y);          // W==0 && E==0
-    const float Z00 = (1.0f + A2) * fmaxf(a3 * X,   Z);
-
-    const float Y01 =                fmaxf(X,        Y);          // W==0 && E>0
-    const float Z01 =                fmaxf(a3 * X,   Z);
-
-    const float Y10 = fmaxf(XmW,      Y - W);                     // W>0 && W<=min_ZYt
-    const float Z10 = fmaxf(a3 * XmW, Z);
-
-    const float t111    = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
-    const float Y11 = fmaxf(XmW,      t111);
-    const float Z11 = fmaxf(a3 * XmW, Z * invX * XmW);
-
-    // ---------- 4 个掩码 ----------
-    const float m00 =  wz &  ez;          // W==0 &&  E==0
-    const float m01 =  wz & !ez;          // W==0 &&  E>0
-    const float m10 = !wz &  wle;         // W>0 &&  W<=min_ZYt
-    const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
-
-    // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11;
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11;
-
-        // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
-        // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
-
-
-    float P_tau_tp1 = 1 - P_tau_gep_tp1;
-
- 
-
-    // //Monte Carlo 模拟
-    float d_temp = monte_carlo_simulation(
-        XmW, Y_tp1, Z_tp1, E_tp1,
-        P_tau_tp1, P_tau_gep_tp1,
-        l, rng_states, idx
-    );
-
-
-
-    // 优化代码
-    // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
-    float fWt = W - A1 * fmaxf(W - min_ZYt, 0.0f);   // ← 已同时覆盖两种情况
-    fWt       *= (t != 0);                           // t==0 → 置 0
-
-    
-    // 存储结果
-    d_d_results[idx] = d_temp / MOTECALO_NUMS + fWt;
-    // d_results[idx] = d_temp;
-}
-
-// V_tp1 kernel 实现
-__global__ void V_tp1_kernel(int offset, int t) {
-    int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
-    if (idx >= SIZE_X * SIZE_Y * SIZE_Z * SIZE_E) return;
-
-    // 计算索引
-    int index_x = idx / sYZE;
-    int remainder = idx % sYZE;
-    int index_y = remainder / sZE;
-    remainder = remainder % sZE;
-    int index_z = remainder / sE;
-    // int index_e = remainder % sE;
-
-    float X = d_d_X[index_x];
-    float Y = d_d_Y[index_y];
-    float Z = d_d_Z[index_z];
-    // int E = d_d_E[index_e];
-
-    int W_index = idx * SIZE_W;
-    float max_w = d_d_results[W_index];
-
-    if (t == 0) {
-        d_d_V_tp1[idx] = max_w;
-        return;
-    }
-
-    // 查找最大值
-    for (int i = 0; i < SIZE_W; i++) {
-
-        if (Y >= d_d_W[i]) {
-            float current = d_d_results[W_index + i];
-            if (current > max_w) {
-                max_w = current;
-            }
-        }
-    }
-
-    d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * fmaxf((Y - fminf(Z, Y)), 0.0f), X), max_w);
-}
-
-
-// 设备函数实现
-__device__ float monte_carlo_simulation2(float XmW, float Y_tp1, float Z_tp1, int E_tp1, float P_tau_tp1, float P_tau_gep_tp1, float l, curandStatePhilox4_32_10_t * rng_states, int idx) {
     float d_temp = 0.0f;
     curandStatePhilox4_32_10_t s = rng_states[idx];
     
@@ -485,7 +318,7 @@ __device__ float monte_carlo_simulation2(float XmW, float Y_tp1, float Z_tp1, in
 }
 
 // XYZEW kernel 实现
-__global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
+__global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
     if (idx >= d_sXYZEW) return;
 
@@ -552,7 +385,7 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
  
 
     // //Monte Carlo 模拟
-    float d_temp = monte_carlo_simulation2(
+    float d_temp = monte_carlo_simulation(
         XmW, Y_tp1, Z_tp1, E_tp1,
         P_tau_tp1, P_tau_gep_tp1,
         l, rng_states, idx
@@ -572,7 +405,7 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
 }
 
 // V_tp1 kernel 实现
-__global__ void V_tp1_kernel2(int offset, int t) {
+__global__ void V_tp1_kernel(int offset, int t) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
     if (idx >= d_sXYZE) return;
 

@@ -1,46 +1,46 @@
 // 定义常量宏 start
-#define A1 0.15f
-#define A2 0.025f
-#define R 0.05f
+// #define A1 0.15f
+// #define A2 0.025f
+// #define R 0.05f
 
-#define MU 0.05f
-#define SIGMA 0.2f
-#define MOTECALO_NUMS 10000
+// #define MU 0.05f
+// #define SIGMA 0.2f
+// #define MOTECALO_NUMS 10000
 
-#define MIN_XYZ 0
-#define MAX_X 100
-#define MAX_Y 100
-#define MAX_Z 100
-#define MAX_W 100
-
-
-#define SIZE_X 41
-#define SIZE_Y 41
-#define SIZE_Z 41
-#define SIZE_E 2
-#define SIZE_W 41
-// 定义常量宏 end
+// #define MIN_XYZ 0
+// #define MAX_X 100
+// #define MAX_Y 100
+// #define MAX_Z 100
+// #define MAX_W 100
 
 
-#define SCALE_TO_INT_X ((float)(SIZE_X-1) / (MAX_X - MIN_XYZ))
-#define SCALE_TO_INT_Y ((float)(SIZE_Y-1) / (MAX_Y - MIN_XYZ))
-#define SCALE_TO_INT_Z ((float)(SIZE_Z-1) / (MAX_Z - MIN_XYZ))
-
-#define sXYZEW (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
-#define sYZEW (SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
-#define sZEW (SIZE_Z*SIZE_E*SIZE_W)
-#define sEW (SIZE_E*SIZE_W)
-#define sW (SIZE_W)
-
-#define sXYZE (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E)
-#define sYZE (SIZE_Y*SIZE_Z*SIZE_E)
-#define sZE (SIZE_Z*SIZE_E)
-#define sE (SIZE_E)
+// #define SIZE_X 41
+// #define SIZE_Y 41
+// #define SIZE_Z 41
+// #define SIZE_E 2
+// #define SIZE_W 41
+// // 定义常量宏 end
 
 
-#define P 1
-#define INITIAL_INVESTMENT 100.0f
-#define DELTA_T 1.0f/P
+// #define SCALE_TO_INT_X ((float)(SIZE_X-1) / (MAX_X - MIN_XYZ))
+// #define SCALE_TO_INT_Y ((float)(SIZE_Y-1) / (MAX_Y - MIN_XYZ))
+// #define SCALE_TO_INT_Z ((float)(SIZE_Z-1) / (MAX_Z - MIN_XYZ))
+
+// #define sXYZEW (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
+// #define sYZEW (SIZE_Y*SIZE_Z*SIZE_E*SIZE_W)
+// #define sZEW (SIZE_Z*SIZE_E*SIZE_W)
+// #define sEW (SIZE_E*SIZE_W)
+// #define sW (SIZE_W)
+
+// #define sXYZE (SIZE_X*SIZE_Y*SIZE_Z*SIZE_E)
+// #define sYZE (SIZE_Y*SIZE_Z*SIZE_E)
+// #define sZE (SIZE_Z*SIZE_E)
+// #define sE (SIZE_E)
+
+
+// #define P 1
+// #define INITIAL_INVESTMENT 100.0f
+// #define DELTA_T 1.0f/P
 
 extern int h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
 extern int h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
@@ -57,7 +57,7 @@ __constant__ int d_sXYZE, d_sYZE, d_sZE, d_sE;
 __constant__ float d_SCALE_TO_INT_X, d_SCALE_TO_INT_Y, d_SCALE_TO_INT_Z;
 
 
-extern float h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
+extern float h_A1,h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
 __constant__ float d_A1, d_A2, d_R, d_MU, d_SIGMA, d_P, d_INITIAL_INVESTMENT, d_DELTA_T;
 __constant__ int d_MOTECALO_NUMS;
 

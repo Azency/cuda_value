@@ -3,25 +3,24 @@
 
 float trans_tau_np[10] = {0.95227777, 0.9458399, 0.938519, 0.93016787, 0.92060485, 0.9096251, 0.89702214, 0.88261673, 0.86628806, 0.84799892};
 
-// 导出到python的函数
 float compute_l(float l, float * trans_tau_d, int T) {
-    float a3 = 1.00/(T/P);
+    float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
     // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
-    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
-    float delta_z = (a3 * h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1;
-    int Z_index_2 = (int)fminf(Z_index_1 + 1, SIZE_Z - 1);
+    int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
+    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
+    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
+    int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
 
-    int index1 = IDX_V(X_index, Y_index, Z_index_1, 0);
-    int index2 = IDX_V(X_index, Y_index, Z_index_2, 0);
+    int index1 = h_IDX_V(X_index, Y_index, Z_index_1, 0);
+    int index2 = h_IDX_V(X_index, Y_index, Z_index_2, 0);
 
     // 设置随机数生成器
     curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = SIZE_X * SIZE_Y * SIZE_Z * SIZE_E * SIZE_W;
+    int num_threads = h_sXYZEW;
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
@@ -30,7 +29,7 @@ float compute_l(float l, float * trans_tau_d, int T) {
     dim3 grid((num_threads + block.x - 1) / block.x);
 
     dim3 block2(1024);
-    dim3 grid2((SIZE_X * SIZE_Y * SIZE_Z * SIZE_E + block2.x - 1) / block2.x);
+    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
 
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
@@ -74,93 +73,9 @@ float compute_l(float l, float * trans_tau_d, int T) {
     return output;
 }
 
+
 void run(){
-    float l = 0.00f;
-
-    init_global_XYZEW_V();
-
-    printf("init_global_XYZEW_V done\n");
-
-    // 设置随机数生成器
-    float output = compute_l(l, trans_tau_np, 10);
-
-    clean_global_XYZEW_V();
-
-}
-
-float compute_l2(float l, float * trans_tau_d, int T) {
-    float a3 = 1.00/(T/h_P);
-
-    // 这一段后续优化为宏
-    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
-    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
-    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
-    int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
-
-
-    int index1 = h_IDX_V(X_index, Y_index, Z_index_1, 0);
-    int index2 = h_IDX_V(X_index, Y_index, Z_index_2, 0);
-
-    // 设置随机数生成器
-    curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = h_sXYZEW;
-    cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
-    setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
-
-    // 设置block和grid
-    dim3 block(1024);
-    dim3 grid((num_threads + block.x - 1) / block.x);
-
-    dim3 block2(1024);
-    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
-
-    for (int t = T-1; t >= 0; t--) {
-        float P_tau_t = trans_tau_d[t];
-        
-        // 计算V(t)
-        XYZEW_kernel2<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-        cudaDeviceSynchronize();
-
-
-        // 计算W的最大值
-        V_tp1_kernel2<<<grid2, block2>>>(0, t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-
-    }
-
-    float out1, out2;
-    cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&out2, &d_V_tp1[index2], sizeof(float), cudaMemcpyDeviceToHost);
-  
-    float output = out1 + (out2 - out1)*delta_z;
-
-
-    float final_X, final_Y, final_Z_1, final_Z_2;
-    cudaMemcpy(&final_X, &d_X[X_index], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Y, &d_Y[Y_index], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Z_1, &d_Z[Z_index_1], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Z_2, &d_Z[Z_index_2], sizeof(float), cudaMemcpyDeviceToHost);
-    
-    printf("index1 = %d, index2 = %d\n", index1, index2);
-    printf("out1 = %f, out2 = %f\n", out1, out2);
-    printf("X_index = %d, Y_index = %d, Z_index_1 = %d, Z_index_2 = %d\n", X_index, Y_index, Z_index_1, Z_index_2);
-    printf("1/2---对应的账户值是：%f, %f, %f, %f\n", final_X, final_Y, final_Z_1, final_Z_2);
-
-
-    cudaFree(d_rng_states);
-
-    return output;
-}
-
-
-void run2(){
-    float l = 0.00f;
+    float l = 0.12f;
 
     init_global_config(
         0, 100, 41,
@@ -171,9 +86,13 @@ void run2(){
         0.15f, 0.025f, 0.05f, 0.05f, 0.2f, 10000, 1, 100.0f
     );
 
-    init_global_XYZEW_V2();
+    init_global_XYZEW_V();
 
-    float output = compute_l2(l, trans_tau_np, 10);
+    float output = compute_l(l, trans_tau_np, 10);
+
+    reset_Vtp1();
+
+    output = compute_l(0.13f, trans_tau_np, 10);
 
     clean_global_XYZEW_V();
 
@@ -185,7 +104,7 @@ void run2(){
 
 int main() {
 
-    run2();
+    run();
     return 0;
 }
 
