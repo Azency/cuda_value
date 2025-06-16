@@ -158,13 +158,11 @@ void clean_global_XYZEW_V() {
 
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
-    float scale_to_int_X = (float)SIZE_X / (MAX_X - MIN_XYZ);
-    float scale_to_int_Y = (float)SIZE_Y / (MAX_Y - MIN_XYZ);
-    float scale_to_int_Z = (float)SIZE_Z / (MAX_Z - MIN_XYZ);
+    float scale_to_int = (float)SIZE_X / (MAX_X - MIN_XYZ);
     
-    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int_X);
-    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int_Y);
-    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int_Z);
+    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int);
+    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int);
+    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int);
     int E_int = E;
     
     return d_d_V_tp1[IDX_V(X_int, Y_int, Z_int, E_int)];
@@ -292,7 +290,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 // V_tp1 kernel 实现
 __global__ void V_tp1_kernel(int offset, int t) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
-    if (idx >= SIZE_X * SIZE_Y * SIZE_Z * SIZE_E) return;
+    if (idx >= SIZE_X * SIZE_Y * SIZE_Z * SIZE_E) return;//这里是否还需要size_E？？
 
     // 计算索引
     int index_x = idx / sYZE;
@@ -300,8 +298,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     int index_y = remainder / sZE;
     remainder = remainder % sZE;
     int index_z = remainder / sE;
-    // int index_e = remainder % sE; //这里如果没有了size_E，就直接变成XYZ三维度了，是否会影响E的size对idx的表达
-                                        //是否这里的W_index与d_d_results[idx]的idx相同,如果是的话，如何保证相同？
+    // int index_e = remainder % sE;
 
     float X = d_d_X[index_x];
     float Y = d_d_Y[index_y];
@@ -312,7 +309,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     float max_w = d_d_results[W_index];
 
     if (t == 0) {
-        d_d_V_tp1[idx] = max_w;//对应着d_results[index_x, index_y, index_z, index_e, 0]
+        d_d_V_tp1[idx] = max_w;
         return;
     }
 
@@ -327,7 +324,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
         }
     }
 
-    d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * (Y - fminf(Z, Y)), X), max_w);
+    d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * fmaxf((Y - fminf(Z, Y)), 0.0f), X), max_w);
 }
 
 

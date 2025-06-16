@@ -159,12 +159,12 @@ void clean_global_XYZEW_V() {
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
     float scale_to_int_X = (float)SIZE_X / (MAX_X - MIN_XYZ);
-    float scale_to_int_Y = (float)SIZE_Y / (MAX_Y - MIN_XYZ);
-    float scale_to_int_Z = (float)SIZE_Z / (MAX_Z - MIN_XYZ);
+    float scale_to_int_Y = (float)SIZE_X / (MAX_X - MIN_XYZ);
+    float scale_to_int_Z = (float)SIZE_X / (MAX_X - MIN_XYZ);
     
-    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int_X);
-    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int_Y);
-    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int_Z);
+    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int);
+    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int);
+    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int);
     int E_int = E;
     
     return d_d_V_tp1[IDX_V(X_int, Y_int, Z_int, E_int)];

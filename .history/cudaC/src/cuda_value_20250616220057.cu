@@ -158,13 +158,11 @@ void clean_global_XYZEW_V() {
 
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
-    float scale_to_int_X = (float)SIZE_X / (MAX_X - MIN_XYZ);
-    float scale_to_int_Y = (float)SIZE_Y / (MAX_Y - MIN_XYZ);
-    float scale_to_int_Z = (float)SIZE_Z / (MAX_Z - MIN_XYZ);
+    float scale_to_int = (float)SIZE_X / (MAX_X - MIN_XYZ);
     
-    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int_X);
-    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int_Y);
-    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int_Z);
+    int X_int = (int)floorf((X - MIN_XYZ) * scale_to_int);
+    int Y_int = (int)floorf((Y - MIN_XYZ) * scale_to_int);
+    int Z_int = (int)floorf((Z - MIN_XYZ) * scale_to_int);
     int E_int = E;
     
     return d_d_V_tp1[IDX_V(X_int, Y_int, Z_int, E_int)];
@@ -192,8 +190,6 @@ __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int
         // 计算 X(t+1)
         float X_tp1 = XmW * exp_term * expf(SIGMA * sqrt_delta_t * random);
         X_tp1 = fminf(X_tp1, MAX_X);
-        Y_tp1 = fminf(Y_tp1, MAX_Y);
-        Z_tp1 = fminf(Z_tp1, MAX_Z);
         
         // 查找值函数
         float V_tp1 = lookup_V(X_tp1, Y_tp1, Z_tp1, E_tp1);
@@ -264,8 +260,8 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
 
     // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
+    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0);
+    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11;
 
         // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
         // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
@@ -281,7 +277,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     // 优化代码
     // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
     float fWt = W - A1 * fmaxf(W - min_ZYt, 0.0f);   // ← 已同时覆盖两种情况
-    fWt *= (t != 0);                           // t==0 → 置 0
+    fWt       *= (t != 0);                           // t==0 → 置 0
 
     
     // 存储结果
@@ -300,8 +296,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     int index_y = remainder / sZE;
     remainder = remainder % sZE;
     int index_z = remainder / sE;
-    // int index_e = remainder % sE; //这里如果没有了size_E，就直接变成XYZ三维度了，是否会影响E的size对idx的表达
-                                        //是否这里的W_index与d_d_results[idx]的idx相同,如果是的话，如何保证相同？
+    // int index_e = remainder % sE;
 
     float X = d_d_X[index_x];
     float Y = d_d_Y[index_y];
@@ -312,7 +307,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     float max_w = d_d_results[W_index];
 
     if (t == 0) {
-        d_d_V_tp1[idx] = max_w;//对应着d_results[index_x, index_y, index_z, index_e, 0]
+        d_d_V_tp1[idx] = max_w;
         return;
     }
 
@@ -327,7 +322,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
         }
     }
 
-    d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * (Y - fminf(Z, Y)), X), max_w);
+    d_d_V_tp1[idx] = fmaxf(fmaxf(Y - A1 * fmaxf((Y - fminf(Z, Y)), 0.0f), X), max_w);
 }
 
 
