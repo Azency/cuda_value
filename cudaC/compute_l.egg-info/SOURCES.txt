@@ -1,0 +1,9 @@
+setup.py
+compute_l.egg-info/PKG-INFO
+compute_l.egg-info/SOURCES.txt
+compute_l.egg-info/dependency_links.txt
+compute_l.egg-info/not-zip-safe
+compute_l.egg-info/top_level.txt
+src/cuda_value.cu
+src/pycomputel.cu
+src/wrapper.c

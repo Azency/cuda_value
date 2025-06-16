@@ -8,11 +8,11 @@ float compute_l(float l, float * trans_tau_d, int T) {
     float a3 = 1.00/(T/P);
 
     // 这一段后续优化为宏
-    // MIN_XYZ, INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
-    int Y_index = (int)floorf((INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
-    float delta_z = (a3 * INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1;
+    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
+    int X_index = (int)floorf((h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_X);
+    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Y);
+    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z);
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - MIN_XYZ) * SCALE_TO_INT_Z - Z_index_1;
     int Z_index_2 = (int)fminf(Z_index_1 + 1, SIZE_Z - 1);
 
 
@@ -89,14 +89,14 @@ void run(){
 }
 
 float compute_l2(float l, float * trans_tau_d, int T) {
-    float a3 = 1.00/(T/P);
+    float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
-    // MIN_XYZ, INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
-    int Y_index = (int)floorf((INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
-    float delta_z = (a3 * INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
+    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
+    int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
+    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
+    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
     int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
 
@@ -120,14 +120,14 @@ float compute_l2(float l, float * trans_tau_d, int T) {
         float P_tau_t = trans_tau_d[t];
         
         // 计算V(t)
-        XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        XYZEW_kernel2<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
         cudaDeviceSynchronize();
 
 
         // 计算W的最大值
-        V_tp1_kernel<<<grid2, block2>>>(0, t);
+        V_tp1_kernel2<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
@@ -167,8 +167,11 @@ void run2(){
         0, 100, 41,
         0, 100, 41,
         0, 1,   2,
-        0, 100, 41
+        0, 100, 41,
+        0.15f, 0.025f, 0.05f, 0.05f, 0.2f, 10000, 1, 100.0f
     );
+
+    init_global_XYZEW_V2();
 
     float output = compute_l2(l, trans_tau_np, 10);
 

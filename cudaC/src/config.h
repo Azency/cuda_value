@@ -38,10 +38,7 @@
 #define sE (SIZE_E)
 
 
-#define X0 67
-#define X_END 92
 #define P 1
-#define Q 1
 #define INITIAL_INVESTMENT 100.0f
 #define DELTA_T 1.0f/P
 
@@ -58,6 +55,11 @@ __constant__ int d_SIZE_X, d_SIZE_Y, d_SIZE_Z, d_SIZE_E, d_SIZE_W;
 __constant__ int d_sXYZEW, d_sYZEW, d_sZEW, d_sEW, d_sW;
 __constant__ int d_sXYZE, d_sYZE, d_sZE, d_sE;
 __constant__ float d_SCALE_TO_INT_X, d_SCALE_TO_INT_Y, d_SCALE_TO_INT_Z;
+
+
+extern float h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
+__constant__ float d_A1, d_A2, d_R, d_MU, d_SIGMA, d_P, d_INITIAL_INVESTMENT, d_DELTA_T;
+__constant__ int d_MOTECALO_NUMS;
 
 extern float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1, *d_results;
 extern int *d_E;

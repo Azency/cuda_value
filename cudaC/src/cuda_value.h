@@ -43,6 +43,20 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
 __global__ void V_tp1_kernel(int offset, int t);
 
+__device__ float monte_carlo_simulation2(
+    float XmW,           // X - W
+    float Y_tp1,         // Y(t+1)
+    float Z_tp1,         // Z(t+1)
+    int E_tp1,           // E(t+1)
+    float P_tau_tp1,     // P(tau=t+1)
+    float P_tau_gep_tp1, // P(tau>=t+1)
+    float l,             // 费用率
+    curandStatePhilox4_32_10_t * rng_state, // 随机数状态
+    int idx              // 线程索引
+    );
+__global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_t);
+__global__ void V_tp1_kernel2(int offset, int t);
+
 // 随机数发生器
 __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHSs);
 
@@ -63,7 +77,8 @@ void init_global_config(
     int min_Y, int max_Y, int size_Y,
     int min_Z, int max_Z, int size_Z,
     int min_E, int max_E, int size_E,
-    int min_W, int max_W, int size_W
+    int min_W, int max_W, int size_W,
+    float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 );
 
 void init_global_XYZEW_V();
