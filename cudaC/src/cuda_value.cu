@@ -414,11 +414,11 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
     const float Y00 = (1.0f + d_A2) * fmaxf(X,        Y);          // W==0 && E==0
     const float Z00 = (1.0f + d_A2) * fmaxf(a3 * X,   Z);
 
-    const float Y01 =                fmaxf(X,        Y);          // W==0 && E>0
-    const float Z01 =                fmaxf(a3 * X,   Z);
+    const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
+    const float Z01 = fmaxf(Z, a3 * XmW);
 
-    const float Y10 = fmaxf(XmW,      Y - W);                     // W>0 && W<=min_ZYt
-    const float Z10 = fmaxf(a3 * XmW, Z);
+    const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
+    const float Z10 = fmaxf(Z, a3 * XmW);
 
     const float t11 = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
     const float Y11 = fmaxf(XmW,      t11);
@@ -431,8 +431,8 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
     const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
 
     // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11;
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11;
+    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
+    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
 
         // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
         // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
@@ -538,17 +538,12 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
 
     float P_tau_tp1 = 1 - P_tau_gep_tp1;
-
- 
-
     // //Monte Carlo 模拟
     float d_temp = monte_carlo_simulation(
         XmW, Y_tp1, Z_tp1, E_tp1,
         P_tau_tp1, P_tau_gep_tp1,
         l, rng_states, idx
     );
-
-
 
     // 优化代码
     // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
@@ -583,7 +578,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     float max_w = d_d_results[W_index];
 
     if (t == 0) {
-        d_d_V_tp1[idx] = max_w;
+        d_d_V_tp1[idx] = max_w;//对应着d_results[index_x, index_y, index_z, index_e, 0]
         return;
     }
 
