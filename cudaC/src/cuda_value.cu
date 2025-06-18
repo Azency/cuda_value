@@ -282,13 +282,59 @@ void reset_Vtp1() {
 
 // 查表函数
 __device__ float lookup_V(float X, float Y, float Z, int E) {
-
-    int X_int = (int)floorf((X - d_MIN_X) * d_SCALE_TO_INT_X);
-    int Y_int = (int)floorf((Y - d_MIN_Y) * d_SCALE_TO_INT_Y);
-    int Z_int = (int)floorf((Z - d_MIN_Z) * d_SCALE_TO_INT_Z);
     int E_int = E;
-    
-    return d_d_V_tp1[IDX_V(X_int, Y_int, Z_int, E_int)];
+    int X_down = (int)floorf((X - d_MIN_X) * d_SCALE_TO_INT_X);
+    int Y_down = (int)floorf((Y - d_MIN_Y) * d_SCALE_TO_INT_Y);
+    int Z_down = (int)floorf((Z - d_MIN_Z) * d_SCALE_TO_INT_Z);
+    int X_up   = fminf(X_down + 1, d_SIZE_X - 1);
+    int Y_up   = fminf(Y_down + 1, d_SIZE_Y - 1);
+    int Z_up   = fminf(Z_down + 1, d_SIZE_Z - 1);
+
+    float dx   = (X - d_d_X[X_down]) * d_SCALE_TO_INT_X;
+    float dy   = (Y - d_d_Y[Y_down]) * d_SCALE_TO_INT_Y; 
+    float dz   = (Z - d_d_Z[Z_down]) * d_SCALE_TO_INT_Z;
+
+    // float res = d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
+    // res = res / 8;
+
+    float res = 0;
+    res += (1 - dx) * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)];
+    res += dx * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)];
+    res += (1 - dx) * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)];
+    res += dx * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)];
+    res += (1 - dx) * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)];
+    res += dx * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)];
+    res += (1 - dx) * dy * dz * d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)];
+    res += dx * dy * dz * d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
+
+
+    // float V000 = d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)];
+    // float V100 = d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)];
+    // float V010 = d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)];
+    // float V110 = d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)];
+    // float V001 = d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)];
+    // float V101 = d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)];
+    // float V011 = d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)];
+    // float V111 = d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
+
+    // float res = (1 - dx) * (1 - dy) * (1 - dz) * V000 + dx* (1 - dy) * (1 - dz) * V100 + 
+    //             (1 - dx) * dy       * (1 - dz) * V010 + 
+    //             dx * dy  * (1 - dz) * V110 + 
+    //             (1 - dx) * (1 - dy) * dz       * V001 + 
+    //             dx       * (1 - dy) * dz       * V101 + 
+    //             (1 - dx) * dy       * dz       * V011 + 
+    //             dx       * dy       * dz       * V111;
+
+    // float res = V000 + V100 + V010 + V110 + V001 + V101 + V011 + V111;
+
+    return res;
+
+
+    // int X_down = (int)floorf((X - d_MIN_X) * d_SCALE_TO_INT_X);
+    // int Y_down = (int)floorf((Y - d_MIN_Y) * d_SCALE_TO_INT_Y);
+    // int Z_down = (int)floorf((Z - d_MIN_Z) * d_SCALE_TO_INT_Z);
+
+    // return d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E)];
 }
 
 
@@ -313,8 +359,6 @@ __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int
         // 计算 X(t+1)
         float X_tp1 = XmW * exp_term * expf(d_SIGMA * sqrt_delta_t * random);
         X_tp1 = fminf(X_tp1, d_MAX_X);
-        Y_tp1 = fminf(Y_tp1, d_MAX_Y);
-        Z_tp1 = fminf(Z_tp1, d_MAX_Z);
         
         // 查找值函数
         float V_tp1 = lookup_V(X_tp1, Y_tp1, Z_tp1, E_tp1);
@@ -531,7 +575,9 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
     // ---------- 混合得到最终结果 ----------
     Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); 
+    Y_tp1 = fminf(Y_tp1, d_MAX_Y);
     Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); 
+    Z_tp1 = fminf(Z_tp1, d_MAX_Z);
 
         // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
         // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值

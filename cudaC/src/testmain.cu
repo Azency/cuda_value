@@ -24,12 +24,11 @@ float compute_l(float l, float * trans_tau_d, int T) {
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
     // 设置block和grid
-    dim3 block(1024);
-    dim3 grid((num_threads + block.x - 1) / block.x);
+    dim3 block(512);
+    dim3 grid((h_sXYZEW + block.x - 1) / block.x);
 
-    dim3 block2(1024);
+    dim3 block2(512);
     dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
-
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
@@ -142,7 +141,7 @@ float compute_l2(float l, float * trans_tau_d, int T) {
 
 
 void run(){
-    float l = 0.12f;
+    float l = 0.00f;
 
     init_global_config(
         0, 1000, 101,
@@ -159,7 +158,7 @@ void run(){
 
     // reset_Vtp1();
 
-    float output = compute_l(0.00f, trans_tau_np, 10);
+    float output = compute_l(l, trans_tau_np, 10);
 
     clean_global_XYZEW_V();
 
