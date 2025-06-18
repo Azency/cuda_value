@@ -1,1 +1,7 @@
 .history/
+cudaC/build/
+cudaC/*.egg-info/
+cudaC/*.so
+cudaC/dist/
+cudaC/cudaC.egg-info/
+cudaC/cudaC.egg-info/
