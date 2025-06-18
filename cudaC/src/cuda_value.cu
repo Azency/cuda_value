@@ -555,7 +555,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
     // ---------- path-specific候选值 ----------
     const float Y00 = fmaxf((1.0f + d_A2) * Y, XmW);          // W==0 && E==0
-    const float Z00 = fmaxf(a3 * Y, a3 * XmW);
+    const float Z00 = (1.0f + d_A2) * fmaxf(a3 * X,   Z);
 
     const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
     const float Z01 = fmaxf(Z, a3 * XmW);
@@ -579,8 +579,6 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); 
     Z_tp1 = fminf(Z_tp1, d_MAX_Z);
 
-        // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
-        // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
 
 
     float P_tau_tp1 = 1 - P_tau_gep_tp1;
