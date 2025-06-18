@@ -144,11 +144,11 @@ void run(){
     float l = 0.00f;
 
     init_global_config(
-        0, 1000, 101,
-        0, 1000, 101,
-        0, 1000, 101,
+        0, 1000, 61,
+        0, 1000, 61,
+        0, 1000, 61,
         0, 1,   2,
-        0, 1000, 101,
+        0, 1000, 61,
         0.15f, 0.025f, 0.05f, 0.05f, 0.2f, 1000, 1, 100.0f
     );
 
@@ -157,8 +157,11 @@ void run(){
     // float output = compute_l2(l, trans_tau_np, 10);
 
     // reset_Vtp1();
-
+    time_t start, end;
+    time(&start);
     float output = compute_l(l, trans_tau_np, 10);
+    time(&end);
+    printf("\n cpmputlel cost time = %f\n", difftime(end, start));
 
     clean_global_XYZEW_V();
 
