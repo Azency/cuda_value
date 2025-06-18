@@ -540,6 +540,8 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     int E = d_d_E[index_e];
     float W = d_d_W[index_w];
 
+    if (W > Y) return;
+
     float min_ZYt = fminf(Z, Y);
     float Y_tp1, Z_tp1;
 
