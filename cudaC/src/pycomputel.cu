@@ -4,16 +4,14 @@
 // 导出到python的函数
 extern "C" 
 float pycompute_l(float l, float * trans_tau_d, int T) {
-
-    
     float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
-    // MIN_XYZ, INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
+    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
     int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
     int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
     int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
-    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_Z - Z_index_1; 
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
     int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
 
@@ -26,37 +24,27 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
-    printf("random setup is done\n");
-
-
     // 设置block和grid
-    dim3 block(1024);
-    dim3 grid((num_threads + block.x - 1) / block.x);
+    dim3 block(512);
+    dim3 grid((h_sXYZEW + block.x - 1) / block.x);
 
-    dim3 block2(1024);
+    dim3 block2(512);
     dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
-
-    printf("kernel is start \n");
     for (int t = T-1; t >= 0; t--) {
-        
-
         float P_tau_t = trans_tau_d[t];
-
+        
         // 计算V(t)
         XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
-        
         // 计算W的最大值
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
 
-
     }
-    printf("kernel is done \n");
 
     float out1, out2;
     cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
@@ -71,14 +59,13 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
     cudaMemcpy(&final_Z_1, &d_Z[Z_index_1], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_Z_2, &d_Z[Z_index_2], sizeof(float), cudaMemcpyDeviceToHost);
     
-    printf("index1 = %d, index2 = %d\n", index1, index2);
-    printf("out1 = %f, out2 = %f\n", out1, out2);
+    // printf("index1 = %d, index2 = %d\n", index1, index2);
+    printf("out1 = %f, out2 = %f, output = %f\n", out1, out2, output);
     printf("X_index = %d, Y_index = %d, Z_index_1 = %d, Z_index_2 = %d\n", X_index, Y_index, Z_index_1, Z_index_2);
     printf("1/2---对应的账户值是：%f, %f, %f, %f\n", final_X, final_Y, final_Z_1, final_Z_2);
 
 
     cudaFree(d_rng_states);
-    // clean_global_XYZEW_V();
 
     return output;
 }

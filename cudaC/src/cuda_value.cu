@@ -1,4 +1,5 @@
 #include "cuda_value.h"
+// #include "config.h"
 
 int h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
 int h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
@@ -297,15 +298,14 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
     // float res = d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)] + d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
     // res = res / 8;
 
-    float res = 0;
-    res += (1 - dx) * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)];
-    res += dx * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)];
-    res += (1 - dx) * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)];
-    res += dx * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)];
-    res += (1 - dx) * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)];
-    res += dx * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)];
-    res += (1 - dx) * dy * dz * d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)];
-    res += dx * dy * dz * d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
+    float res = (1 - dx) * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)] + 
+                dx * (1 - dy) * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_down, Z_down, E_int)] + 
+                (1 - dx) * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_down, Y_up, Z_down, E_int)] + 
+                dx * dy * (1 - dz) * d_d_V_tp1[IDX_V(X_up, Y_up, Z_down, E_int)] + 
+                (1 - dx) * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_down, Y_down, Z_up, E_int)] + 
+                dx * (1 - dy) * dz * d_d_V_tp1[IDX_V(X_up, Y_down, Z_up, E_int)] + 
+                (1 - dx) * dy * dz * d_d_V_tp1[IDX_V(X_down, Y_up, Z_up, E_int)] + 
+                dx * dy * dz * d_d_V_tp1[IDX_V(X_up, Y_up, Z_up, E_int)];
 
 
     // float V000 = d_d_V_tp1[IDX_V(X_down, Y_down, Z_down, E_int)];
