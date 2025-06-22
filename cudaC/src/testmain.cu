@@ -17,6 +17,8 @@ float compute_l(float l, float * trans_tau_d, int T) {
     int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
     int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
     float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
+    float Z_intialvalue = a3 * h_INITIAL_INVESTMENT;
+    printf("Z_intialvalue = %f\n", Z_intialvalue);
     int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
 
@@ -155,7 +157,7 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
         0, 100, 9,
         0, 1,   2,
         0, 800, 65,
-        0.15f, 0.025f, 0.05f, 0.05f, 0.2f, 50000, 1, 100.0f
+        0.15f, 0.025f, 0.05f, 0.05f, 0.2f, 50, 1, 100.0f
     );
 
     init_global_XYZEW_V();
@@ -165,7 +167,7 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
     // reset_Vtp1();
     time_t start, end;
     time(&start);
-    float output = compute_l(l, trans_tau_np, 10);
+    float output = compute_l(l, trans_tau_np, 8);
     time(&end);
     printf("\n cpmputlel cost time = %f\n", difftime(end, start));
 
