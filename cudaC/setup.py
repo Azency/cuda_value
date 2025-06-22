@@ -12,7 +12,7 @@ class CUDAExtension(Extension):
         super().__init__(name, sources=sources)
         self.include_dirs = [numpy.get_include(),
                              os.path.join(CUDA_HOME, "include"),
-                             os.path.join(CONDA_PREFIX, "include/python3.12"),
+                             os.path.join(CONDA_PREFIX, "include/python3.13"),
                              "src"]                       # 可按需调整
         self.library_dirs = [os.path.join(CUDA_HOME, "lib64")]
         self.libraries    = ["cudart"]

@@ -71,7 +71,6 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
 }
 
 
-
 extern "C"
 void pyinit_global_XYZEW_V() {
     init_global_XYZEW_V();
