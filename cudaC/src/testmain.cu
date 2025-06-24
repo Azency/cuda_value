@@ -33,8 +33,7 @@ float compute_l(float l, float * trans_tau_d, int T) {
     int index6 = h_IDX_V(X_index_2, Y_index_1, Z_index_2, 0);
     int index7 = h_IDX_V(X_index_1, Y_index_2, Z_index_2, 0);
     int index8 = h_IDX_V(X_index_2, Y_index_2, Z_index_2, 0);
-    // int index1 = h_IDX_V(X_index, Y_index, Z_index_1, 0);
-    // int index2 = h_IDX_V(X_index, Y_index, Z_index_2, 0);
+
 
     // 设置随机数生成器
     curandStatePhilox4_32_10_t* d_rng_states;
@@ -74,8 +73,6 @@ float compute_l(float l, float * trans_tau_d, int T) {
     cudaMemcpy(&out7, &d_V_tp1[index7], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&out8, &d_V_tp1[index8], sizeof(float), cudaMemcpyDeviceToHost);
 
-    // cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(&out2, &d_V_tp1[index2], sizeof(float), cudaMemcpyDeviceToHost);
 
     float output = (1-delta_x) * (1-delta_y) * (1-delta_z) * out1
                  + delta_x * (1-delta_y) * (1-delta_z) * out2
@@ -85,16 +82,13 @@ float compute_l(float l, float * trans_tau_d, int T) {
                  + delta_x * (1-delta_y) * delta_z * out6
                  + (1-delta_x) * delta_y * delta_z * out7
                  + delta_x * delta_y * delta_z * out8;
-    // float output = out1 + (out2 - out1)*delta_z;
 
 
-    // float final_X, final_Y, final_Z_1, final_Z_2;
     float final_X_1, final_X_2, final_Y_1, final_Y_2, final_Z_1, final_Z_2;
     cudaMemcpy(&final_X_1, &d_X[X_index_1], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_X_2, &d_X[X_index_2], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_Y_1, &d_Y[Y_index_1], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_Y_2, &d_Y[Y_index_2], sizeof(float), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(&final_Y, &d_Y[Y_index], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_Z_1, &d_Z[Z_index_1], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&final_Z_2, &d_Z[Z_index_2], sizeof(float), cudaMemcpyDeviceToHost);
 
@@ -110,10 +104,6 @@ float compute_l(float l, float * trans_tau_d, int T) {
     printf("相应的delta值是：%f, %f, %f\n", delta_x, delta_y, delta_z);
     printf("out1 = %f, out2 = %f, out3 = %f, out4 = %f, out5 = %f, out6 = %f, out7 = %f, out8 = %f, output = %f\n", 
             out1, out2, out3, out4, out5, out6, out7, out8, output);
-    // printf("index1 = %d, index2 = %d\n", index1, index2);
-    // printf("out1 = %f, out2 = %f, output = %f\n", out1, out2, output);
-    // printf("X_index = %d, Y_index = %d, Z_index_1 = %d, Z_index_2 = %d\n", X_index, Y_index, Z_index_1, Z_index_2);
-    // printf("1/2---对应的账户值是：%f, %f, %f, %f\n", final_X, final_Y, final_Z_1, final_Z_2);
 
 
     cudaFree(d_rng_states);
