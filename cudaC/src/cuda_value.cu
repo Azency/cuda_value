@@ -161,19 +161,19 @@ void init_global_XYZEW_V() {
     float *h_V = (float *)malloc(h_sXYZE * sizeof(float));
     
     for (int i = 0; i < h_SIZE_X; i++) {
-        h_X[i] = h_MIN_X + (h_MAX_X - h_MIN_X) * i / (h_SIZE_X - 1);
+        h_X[i] = h_MIN_X + float(h_MAX_X - h_MIN_X) * i / (h_SIZE_X - 1);
     }
     for (int i = 0; i < h_SIZE_Y; i++) {
-        h_Y[i] = h_MIN_Y + (h_MAX_Y - h_MIN_Y) * i / (h_SIZE_Y - 1);
+        h_Y[i] = h_MIN_Y + float(h_MAX_Y - h_MIN_Y) * i / (h_SIZE_Y - 1);
     }
     for (int i = 0; i < h_SIZE_Z; i++) {
-        h_Z[i] = h_MIN_Z + (h_MAX_Z - h_MIN_Z) * i / (h_SIZE_Z - 1);
+        h_Z[i] = h_MIN_Z + float(h_MAX_Z - h_MIN_Z) * i / (h_SIZE_Z - 1);
     }
     for (int i = 0; i < h_SIZE_E; i++) {
         h_E[i] = i;
     }
     for (int i = 0; i < h_SIZE_W; i++) {
-        h_W[i] = h_MIN_W + (h_MAX_W - h_MIN_W) * i / (h_SIZE_W - 1);
+        h_W[i] = h_MIN_W + float(h_MAX_W - h_MIN_W) * i / (h_SIZE_W - 1);
     }
 
     // 初始化 V 数组
