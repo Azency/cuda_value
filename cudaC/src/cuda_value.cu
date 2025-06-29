@@ -589,9 +589,9 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
     const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
     const float Z10 = fmaxf(Z, a3 * XmW);
 
-    const float t11 = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
-    const float Y11 = fmaxf(XmW,      t11);
-    const float Z11 = fmaxf(a3 * XmW, Z * invX * XmW);
+    const float t111  = fminf(Y - W, Y * invX * XmW);            // W>0 && W>min_ZYt
+    const float Y11 = fmaxf(t111, XmW);
+    const float Z11 = fmaxf(Z * invX * XmW, a3 * XmW);
 
     // ---------- 4 个掩码 ----------
     const float m00 =  wz &  ez;          // W==0 &&  E==0
@@ -600,11 +600,10 @@ __global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng
     const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
 
     // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
-
-        // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
-        // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
+    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); 
+    Y_tp1 = fminf(Y_tp1, d_MAX_Y);
+    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); 
+    Z_tp1 = fminf(Z_tp1, d_MAX_Z);
 
 
     float P_tau_tp1 = 1 - P_tau_gep_tp1;
