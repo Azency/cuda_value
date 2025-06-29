@@ -1,15 +1,15 @@
 #include "cuda_value.h"
 // #include "config.h"
 
-float h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
-float h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
+int h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
+int h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
 int h_SIZE_X, h_SIZE_Y, h_SIZE_Z, h_SIZE_E, h_SIZE_W;
 int h_sXYZEW, h_sYZEW, h_sZEW, h_sEW, h_sW;
 int h_sXYZE, h_sYZE, h_sZE, h_sE;
 float h_SCALE_TO_INT_X, h_SCALE_TO_INT_Y, h_SCALE_TO_INT_Z;
 
-__constant__ float d_MIN_X, d_MIN_Y, d_MIN_Z, d_MIN_W;
-__constant__ float d_MAX_X, d_MAX_Y, d_MAX_Z, d_MAX_W;
+__constant__ int d_MIN_X, d_MIN_Y, d_MIN_Z, d_MIN_W;
+__constant__ int d_MAX_X, d_MAX_Y, d_MAX_Z, d_MAX_W;
 __constant__ int d_SIZE_X, d_SIZE_Y, d_SIZE_Z, d_SIZE_E, d_SIZE_W;
 __constant__ int d_sXYZEW, d_sYZEW, d_sZEW, d_sEW, d_sW;
 __constant__ int d_sXYZE, d_sYZE, d_sZE, d_sE;
@@ -62,11 +62,11 @@ __host__ int h_IDX_V(int x, int y, int z, int e){
 
 
 void init_global_config(
-    float min_X, float max_X, int size_X,
-    float min_Y, float max_Y, int size_Y,
-    float min_Z, float max_Z, int size_Z,
+    int min_X, int max_X, int size_X,
+    int min_Y, int max_Y, int size_Y,
+    int min_Z, int max_Z, int size_Z,
     int min_E, int max_E, int size_E,
-    float min_W, float max_W, int size_W,
+    int min_W, int max_W, int size_W,
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 ){
     
@@ -118,21 +118,18 @@ void init_global_config(
     h_SCALE_TO_INT_Y = (float)(size_Y-1) / (max_Y - min_Y);
     h_SCALE_TO_INT_Z = (float)(size_Z-1) / (max_Z - min_Z);
 
-    cudaMemcpyToSymbolAsync(d_MIN_X, &h_MIN_X, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MAX_X, &h_MAX_X, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MIN_Y, &h_MIN_Y, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MAX_Y, &h_MAX_Y, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MIN_Z, &h_MIN_Z, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MAX_Z, &h_MAX_Z, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MIN_W, &h_MIN_W, sizeof(float));
-    cudaMemcpyToSymbolAsync(d_MAX_W, &h_MAX_W, sizeof(float));
-    
-    cudaMemcpyToSymbolAsync(d_SIZE_X, &h_SIZE_X, sizeof(int)); 
+    cudaMemcpyToSymbolAsync(d_MIN_X, &h_MIN_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_X, &h_MAX_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_X, &h_SIZE_X, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_Y, &h_MIN_Y, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_Y, &h_MAX_Y, sizeof(int));
     cudaMemcpyToSymbolAsync(d_SIZE_Y, &h_SIZE_Y, sizeof(int));
-    cudaMemcpyToSymbolAsync(d_SIZE_Z, &h_SIZE_Z, sizeof(int));   
-    cudaMemcpyToSymbolAsync(d_SIZE_E, &h_SIZE_E, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_Z, &h_MIN_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_Z, &h_MAX_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_SIZE_Z, &h_SIZE_Z, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MIN_W, &h_MIN_W, sizeof(int));
+    cudaMemcpyToSymbolAsync(d_MAX_W, &h_MAX_W, sizeof(int));
     cudaMemcpyToSymbolAsync(d_SIZE_W, &h_SIZE_W, sizeof(int));
-
 
     cudaMemcpyToSymbolAsync(d_sXYZEW, &h_sXYZEW, sizeof(int));
     cudaMemcpyToSymbolAsync(d_sYZEW, &h_sYZEW, sizeof(int));
@@ -164,19 +161,19 @@ void init_global_XYZEW_V() {
     float *h_V = (float *)malloc(h_sXYZE * sizeof(float));
     
     for (int i = 0; i < h_SIZE_X; i++) {
-        h_X[i] = h_MIN_X + float(h_MAX_X - h_MIN_X) * i / (h_SIZE_X - 1);
+        h_X[i] = h_MIN_X + (h_MAX_X - h_MIN_X) * i / (h_SIZE_X - 1);
     }
     for (int i = 0; i < h_SIZE_Y; i++) {
-        h_Y[i] = h_MIN_Y + float(h_MAX_Y - h_MIN_Y) * i / (h_SIZE_Y - 1);
+        h_Y[i] = h_MIN_Y + (h_MAX_Y - h_MIN_Y) * i / (h_SIZE_Y - 1);
     }
     for (int i = 0; i < h_SIZE_Z; i++) {
-        h_Z[i] = h_MIN_Z + float(h_MAX_Z - h_MIN_Z) * i / (h_SIZE_Z - 1);
+        h_Z[i] = h_MIN_Z + (h_MAX_Z - h_MIN_Z) * i / (h_SIZE_Z - 1);
     }
     for (int i = 0; i < h_SIZE_E; i++) {
         h_E[i] = i;
     }
     for (int i = 0; i < h_SIZE_W; i++) {
-        h_W[i] = h_MIN_W + float(h_MAX_W - h_MIN_W) * i / (h_SIZE_W - 1);
+        h_W[i] = h_MIN_W + (h_MAX_W - h_MIN_W) * i / (h_SIZE_W - 1);
     }
 
     // 初始化 V 数组
@@ -421,105 +418,6 @@ __global__ void monte_carlo_simulation_kernel(
 
 }
 
-// XYZEW kernel 实现
-__global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
-    int idx = blockIdx.x;
-    int thread_idx = threadIdx.x;
-    if (idx >= d_sXYZEW) return;
-
-    // 计算索引
-    int index_x = idx / d_sYZEW;
-    int remainder = idx % d_sYZEW;
-    int index_y = remainder / d_sZEW;
-    remainder = remainder % d_sZEW;
-    int index_z = remainder / d_sEW;
-    remainder = remainder % d_sEW;
-    int index_e = remainder / d_sW;
-    int index_w = remainder % d_sW;
-
-    // 获取值
-    float X = d_d_X[index_x];
-    float Y = d_d_Y[index_y];
-    float Z = d_d_Z[index_z];
-    int E = d_d_E[index_e];
-    float W = d_d_W[index_w];
-
-    float min_ZYt = fminf(Z, Y);
-    float Y_tp1, Z_tp1;
-
-    int E_tp1 = 1 * (E + W == 0);
-
-    // 优化
-    // // ---------- 预先算好共用量 ----------
-    const float invX  = __frcp_rn(X);               // 1/X  (更省时钟)
-    const float XmW   = fmaxf(X - W, 0.0f);         // max(X-W,0)
-    const bool  wz    = (W == 0);
-    const bool  ez    = (E_tp1 == 0);
-    const bool  wle   = (W <= min_ZYt);
-
-    // ---------- path-specific候选值 ----------
-    const float Y00 = (1.0f + d_A2) * fmaxf(X,        Y);          // W==0 && E==0
-    const float Z00 = (1.0f + d_A2) * fmaxf(a3 * X,   Z);
-
-    const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
-    const float Z01 = fmaxf(Z, a3 * XmW);
-
-    const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
-    const float Z10 = fmaxf(Z, a3 * XmW);
-
-    const float t11 = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
-    const float Y11 = fmaxf(XmW,      t11);
-    const float Z11 = fmaxf(a3 * XmW, Z * invX * XmW);
-
-    // ---------- 4 个掩码 ----------
-    const float m00 =  wz &  ez;          // W==0 &&  E==0
-    const float m01 =  wz & !ez;          // W==0 &&  E>0
-    const float m10 = !wz &  wle;         // W>0 &&  W<=min_ZYt
-    const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
-
-    // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
-
-        // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
-        // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
-
-
-    float P_tau_tp1 = 1 - P_tau_gep_tp1;
-
-    curandStatePhilox4_32_10_t s = rng_states[idx];
-
-    const float exp_term = expf((d_MU - l - 0.5f * d_SIGMA * d_SIGMA) * d_DELTA_T);
-    const float sqrt_delta_t = sqrtf(d_DELTA_T);
-    const float discount_factor = expf(-d_R * d_DELTA_T);
-
-    // 生成随机数
-    float random = curand_normal(&s);
-    
-    // d_temp += 1000 * random;
-
-    // 计算 X(t+1)
-    float X_tp1 = XmW * exp_term * expf(d_SIGMA * sqrt_delta_t * random);
-    X_tp1 = fminf(X_tp1, d_MAX_X);
-    
-    // 查找值函数
-    float V_tp1 = lookup_V(X_tp1, Y_tp1, Z_tp1, E_tp1); 
-
-    float d_temp = discount_factor * (P_tau_tp1 * fmaxf(X_tp1, Y_tp1) + P_tau_gep_tp1 * V_tp1);
-
-    atomicAdd(&d_d_results[idx], d_temp);
-
-    if (thread_idx == 0) {
-        // 优化代码
-        // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
-        float fWt = W - d_A1 * fmaxf(W - min_ZYt, 0.0f);   // ← 已同时覆盖两种情况
-        fWt       *= (t != 0);                           // t==0 → 置 0
-
-        d_d_results[idx] = d_d_results[idx] / 1024 + fWt;
-    }
-    
-}
-
 
 // XYZEW kernel 实现
 __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
@@ -543,8 +441,6 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     int E = d_d_E[index_e];
     float W = d_d_W[index_w];
 
-    if (W > Y) return;
-
     float min_ZYt = fminf(Z, Y);
     float Y_tp1, Z_tp1;
 
@@ -560,7 +456,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
 
     // ---------- path-specific候选值 ----------
     const float Y00 = fmaxf((1.0f + d_A2) * Y, XmW);          // W==0 && E==0
-    const float Z00 = (1.0f + d_A2) * fmaxf(a3 * X,   Z);
+    const float Z00 = a3 * fmaxf((1.0f + d_A2) * Y, XmW);
 
     const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
     const float Z01 = fmaxf(Z, a3 * XmW);
@@ -568,7 +464,7 @@ __global__ void XYZEW_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
     const float Z10 = fmaxf(Z, a3 * XmW);
 
-    const float t111  = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
+    const float t111  = fminf(Y - W, Y * invX * XmW);            // W>0 && W>min_ZYt
     const float Y11 = fmaxf(t111, XmW);
     const float Z11 = fmaxf(Z * invX * XmW, a3 * XmW);
 
@@ -647,3 +543,101 @@ __global__ void V_tp1_kernel(int offset, int t) {
 }
 
 
+// XYZEW kernel 实现(未使用)
+__global__ void XYZEW_kernel2(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
+    int idx = blockIdx.x;
+    int thread_idx = threadIdx.x;
+    if (idx >= d_sXYZEW) return;
+
+    // 计算索引
+    int index_x = idx / d_sYZEW;
+    int remainder = idx % d_sYZEW;
+    int index_y = remainder / d_sZEW;
+    remainder = remainder % d_sZEW;
+    int index_z = remainder / d_sEW;
+    remainder = remainder % d_sEW;
+    int index_e = remainder / d_sW;
+    int index_w = remainder % d_sW;
+
+    // 获取值
+    float X = d_d_X[index_x];
+    float Y = d_d_Y[index_y];
+    float Z = d_d_Z[index_z];
+    int E = d_d_E[index_e];
+    float W = d_d_W[index_w];
+
+    float min_ZYt = fminf(Z, Y);
+    float Y_tp1, Z_tp1;
+
+    int E_tp1 = 1 * (E + W == 0);
+
+    // 优化
+    // // ---------- 预先算好共用量 ----------
+    const float invX  = __frcp_rn(X);               // 1/X  (更省时钟)
+    const float XmW   = fmaxf(X - W, 0.0f);         // max(X-W,0)
+    const bool  wz    = (W == 0);
+    const bool  ez    = (E_tp1 == 0);
+    const bool  wle   = (W <= min_ZYt);
+
+    // ---------- path-specific候选值 ----------
+    const float Y00 = fmaxf((1.0f + d_A2) * Y, XmW);          // W==0 && E==0
+    const float Z00 = a3 * fmaxf((1.0f + d_A2) * Y, XmW);
+
+    const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
+    const float Z01 = fmaxf(Z, a3 * XmW);
+
+    const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
+    const float Z10 = fmaxf(Z, a3 * XmW);
+
+    const float t11 = fminf(Y - W,   Y * invX * XmW);            // W>0 && W>min_ZYt
+    const float Y11 = fmaxf(XmW,      t11);
+    const float Z11 = fmaxf(a3 * XmW, Z * invX * XmW);
+
+    // ---------- 4 个掩码 ----------
+    const float m00 =  wz &  ez;          // W==0 &&  E==0
+    const float m01 =  wz & !ez;          // W==0 &&  E>0
+    const float m10 = !wz &  wle;         // W>0 &&  W<=min_ZYt
+    const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
+
+    // ---------- 混合得到最终结果 ----------
+    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
+    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); //哼，Huifang 改的（傲娇）！！！！！
+
+        // P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
+        // P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
+
+
+    float P_tau_tp1 = 1 - P_tau_gep_tp1;
+
+    curandStatePhilox4_32_10_t s = rng_states[idx];
+
+    const float exp_term = expf((d_MU - l - 0.5f * d_SIGMA * d_SIGMA) * d_DELTA_T);
+    const float sqrt_delta_t = sqrtf(d_DELTA_T);
+    const float discount_factor = expf(-d_R * d_DELTA_T);
+
+    // 生成随机数
+    float random = curand_normal(&s);
+    
+    // d_temp += 1000 * random;
+
+    // 计算 X(t+1)
+    float X_tp1 = XmW * exp_term * expf(d_SIGMA * sqrt_delta_t * random);
+    X_tp1 = fminf(X_tp1, d_MAX_X);
+    
+    // 查找值函数
+    float V_tp1 = lookup_V(X_tp1, Y_tp1, Z_tp1, E_tp1); 
+
+    float d_temp = discount_factor * (P_tau_tp1 * fmaxf(X_tp1, Y_tp1) + P_tau_gep_tp1 * V_tp1);
+
+    atomicAdd(&d_d_results[idx], d_temp);
+
+    if (thread_idx == 0) {
+        // 优化代码
+        // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
+        float fWt = W - d_A1 * fmaxf(W - min_ZYt, 0.0f);   // ← 已同时覆盖两种情况
+        fWt       *= (t != 0);                           // t==0 → 置 0
+
+        d_d_results[idx] = d_d_results[idx] / 1024 + fWt;
+    }
+    
+}
