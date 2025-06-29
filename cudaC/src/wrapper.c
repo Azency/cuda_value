@@ -9,11 +9,11 @@ extern void pyinit_global_XYZEW_V();
 extern void pyclean_global_XYZEW_V();
 extern void pyreset_Vtp1();
 extern void pyinit_global_config(
-    int min_X, int max_X, int size_X,
-    int min_Y, int max_Y, int size_Y,
-    int min_Z, int max_Z, int size_Z,
+    float min_X, float max_X, int size_X,
+    float min_Y, float max_Y, int size_Y,
+    float min_Z, float max_Z, int size_Z,
     int min_E, int max_E, int size_E,
-    int min_W, int max_W, int size_W,
+    float min_W, float max_W, int size_W,
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 );
 
@@ -46,10 +46,12 @@ static PyObject *py_compute_l(PyObject *self, PyObject *args)
 
 static PyObject *py_init_global_config(PyObject *self, PyObject *args)
 {
-    int min_X, max_X, size_X, min_Y, max_Y, size_Y, min_Z, max_Z, size_Z, min_E, max_E, size_E, min_W, max_W, size_W;
+    double min_X, max_X, min_Y, max_Y, min_Z, max_Z, min_W, max_W;
+    int min_E, max_E;
+    int size_X, size_Y, size_Z, size_E, size_W;
     double a1, a2, r, mu, sigma, p, initial_investment;
     int motecalo_nums;
-    if (!PyArg_ParseTuple(args, "iiiiiiiiiiiiiiidddddidd", 
+    if (!PyArg_ParseTuple(args, "ddiddiddiiiiddidddddidd",
         &min_X, &max_X, &size_X, 
         &min_Y, &max_Y, &size_Y, 
         &min_Z, &max_Z, &size_Z, 
@@ -58,7 +60,7 @@ static PyObject *py_init_global_config(PyObject *self, PyObject *args)
         &a1, &a2, &r, &mu, &sigma, &motecalo_nums, &p, &initial_investment))
         return NULL;
 
-    printf("min_X: %d, max_X: %d, size_X: %d, min_Y: %d, max_Y: %d, size_Y: %d, min_Z: %d, max_Z: %d, size_Z: %d, min_E: %d, max_E: %d, size_E: %d, min_W: %d, max_W: %d, size_W: %d, a1: %f, a2: %f, r: %f, mu: %f, sigma: %f, motecalo_nums: %d, p: %f, initial_investment: %f\n", 
+    printf("min_X: %f, max_X: %f, size_X: %d, min_Y: %f, max_Y: %f, size_Y: %d, min_Z: %f, max_Z: %f, size_Z: %d, min_E: %d, max_E: %d, size_E: %d, min_W: %f, max_W: %f, size_W: %d, a1: %f, a2: %f, r: %f, mu: %f, sigma: %f, motecalo_nums: %d, p: %f, initial_investment: %f\n", 
         min_X, max_X, size_X, min_Y, max_Y, size_Y, min_Z, max_Z, size_Z, min_E, max_E, size_E, min_W, max_W, size_W, a1, a2, r, mu, sigma, motecalo_nums, p, initial_investment);
 
     pyinit_global_config(

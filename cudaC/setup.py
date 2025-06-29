@@ -1,10 +1,11 @@
 # setup.py ─ 只依赖 setuptools + NVCC + GCC
-import os, sysconfig, pathlib, numpy
+import os, sysconfig, pathlib, numpy, sys
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
 
 CUDA_HOME = os.environ.get("CUDA_HOME", "/usr/local/cuda")  # 可自行 export
 CONDA_PREFIX = os.environ.get("CONDA_PREFIX", "/home/pengbo/miniconda3")
+PYTHON_VERSION = sys.version.split(".")[1]
 
 class CUDAExtension(Extension):
     """简单占位，不做任何编译"""
@@ -12,7 +13,7 @@ class CUDAExtension(Extension):
         super().__init__(name, sources=sources)
         self.include_dirs = [numpy.get_include(),
                              os.path.join(CUDA_HOME, "include"),
-                             os.path.join(CONDA_PREFIX, "include/python3.13"),
+                             os.path.join(CONDA_PREFIX, f"include/python3.{PYTHON_VERSION}"),
                              "src"]                       # 可按需调整
         self.library_dirs = [os.path.join(CUDA_HOME, "lib64")]
         self.libraries    = ["cudart"]

@@ -19,7 +19,7 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
     int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
     float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
     float Z_value = a3 * h_INITIAL_INVESTMENT;
-    printf("Z_value = %f\n", Z_value);
+
     int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
     int index1 = h_IDX_V(X_index_1, Y_index_1, Z_index_1, 0);
@@ -31,7 +31,9 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
     int index7 = h_IDX_V(X_index_1, Y_index_2, Z_index_2, 0);
     int index8 = h_IDX_V(X_index_2, Y_index_2, Z_index_2, 0);
 
+    
     // 设置随机数生成器
+    
     curandStatePhilox4_32_10_t* d_rng_states;
     int num_threads = h_sXYZEW;
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
@@ -43,6 +45,7 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
 
     dim3 block2(512);
     dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
+    
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
@@ -50,7 +53,7 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
         XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
+        // printf("Z_value = %f\n", Z_value);
         // 计算W的最大值
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
@@ -58,7 +61,8 @@ float pycompute_l(float l, float * trans_tau_d, int T) {
 
 
     }
-
+    
+    
     float out1, out2, out3, out4, out5, out6, out7, out8;
     cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
     cudaMemcpy(&out2, &d_V_tp1[index2], sizeof(float), cudaMemcpyDeviceToHost);
@@ -119,11 +123,11 @@ void pyreset_Vtp1() {
 
 extern "C"
 void pyinit_global_config(
-    int min_X, int max_X, int size_X,
-    int min_Y, int max_Y, int size_Y,
-    int min_Z, int max_Z, int size_Z,
+    float min_X, float max_X, int size_X,
+    float min_Y, float max_Y, int size_Y,
+    float min_Z, float max_Z, int size_Z,
     int min_E, int max_E, int size_E,
-    int min_W, int max_W, int size_W,
+    float min_W, float max_W, int size_W,
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 ) {
     init_global_config(
