@@ -19,8 +19,8 @@ do {                                                    \
     }                                                   \
 } while(0)
 
-extern int h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
-extern int h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
+extern float h_MIN_X, h_MIN_Y, h_MIN_Z, h_MIN_W;
+extern float h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
 extern int h_SIZE_X, h_SIZE_Y, h_SIZE_Z, h_SIZE_E, h_SIZE_W;
 extern int h_sXYZEW, h_sYZEW, h_sZEW, h_sEW, h_sW;
 extern int h_sXYZE, h_sYZE, h_sZE, h_sE;
@@ -94,11 +94,11 @@ __device__ int IDX_V(int x, int y, int z, int e);
 __host__ int h_IDX_V(int x, int y, int z, int e);
 
 void init_global_config(
-    int min_X, int max_X, int size_X,
-    int min_Y, int max_Y, int size_Y,
-    int min_Z, int max_Z, int size_Z,
+    float min_X, float max_X, int size_X,
+    float min_Y, float max_Y, int size_Y,
+    float min_Z, float max_Z, int size_Z,
     int min_E, int max_E, int size_E,
-    int min_W, int max_W, int size_W,
+    float min_W, float max_W, int size_W,
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 );
 
