@@ -1,5 +1,6 @@
 // test_init.cu
 #include "cuda_value.h"
+#include <nvtx3/nvToolsExt.h>
 //male
 // float trans_tau_np[25] = {0.98919799, 0.98850676, 0.98755648, 0.98662116, 0.98551021, 0.98429417, 0.98286998, 0.98122165, 0.97926787, 0.97695839, 0.97422256, 0.97100599, 0.96725252, 0.96291495, 0.95794281, 0.95227777, 0.9458399,  0.938519, 0.93016787, 0.92060485, 0.9096251,  0.89702214, 0.88261673, 0.86628806, 0.84799892}
 // float trans_tau_np[10] = {0.95227777, 0.9458399,  0.938519, 0.93016787, 0.92060485, 0.9096251,  0.89702214, 0.88261673, 0.86628806, 0.84799892};
@@ -51,12 +52,16 @@ float compute_l(float l, float * trans_tau_d, int T) {
         float P_tau_t = trans_tau_d[t];
         
         // 计算V(t)
+        nvtxRangePushA("XYZEW_kernel");
         XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        nvtxRangePop();
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
         // 计算W的最大值
+        nvtxRangePushA("V_tp1_kernel");
         V_tp1_kernel<<<grid2, block2>>>(0, t);
+        nvtxRangePop();
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
@@ -187,12 +192,12 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
     printf("l = %f\n", l);
 
     init_global_config(
-        0, 800, 801,
+        0, 800, 101,
         0, 800, 81,
         0, 100, 11,
         0, 1,   2,
         0, 800, 81,
-        0.15, 0.025, 0.05, 0.05, 0.2, 50000, 1, 100.0);
+        0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
 
     init_global_XYZEW_V();
 
