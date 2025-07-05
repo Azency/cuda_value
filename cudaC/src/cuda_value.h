@@ -24,12 +24,8 @@ extern float h_MAX_X, h_MAX_Y, h_MAX_Z, h_MAX_W;
 extern int h_SIZE_X, h_SIZE_Y, h_SIZE_Z, h_SIZE_E, h_SIZE_W;
 
 extern int h_sWEYZX, h_sEYZX, h_sYZX, h_sZX, h_sX;
-// extern int h_sXYZEW, h_sYZEW, h_sZEW, h_sEW, h_sW;
-// extern int h_sXYZE, h_sYZE, h_sZE, h_sE;
 
 extern float h_SCALE_TO_INT_X, h_SCALE_TO_INT_Y, h_SCALE_TO_INT_Z;
-
-
 
 extern float h_A1,h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
 
@@ -44,6 +40,8 @@ extern cudaChannelFormatDesc channelDesc;
 
 extern cudaTextureObject_t texObj0;
 extern cudaTextureObject_t texObj1;
+extern cudaSurfaceObject_t surfObj0;
+extern cudaSurfaceObject_t surfObj1;
 
 // 设备函数声明
 __device__ float monte_carlo_simulation(
@@ -73,8 +71,6 @@ __global__ void V_tp1_kernel(int offset, int t);
 // 随机数发生器
 __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHSs);
 
-void init_random_state(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHS);
-
 
 
 // 辅助函数声明
@@ -95,10 +91,14 @@ void init_global_XYZEW_V();
 
 void clean_global_XYZEW_V();
 
+void init_random_state();
+
 void init_texture_surface_object();
 
 void copy_cudaarray_to_vtp1();
 
 void reset_Vtp1();
+
+float compute_l(float l, float * trans_tau_d, int T);
 
 #endif

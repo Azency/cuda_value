@@ -42,6 +42,9 @@ __constant__ cudaTextureObject_t d_texObj1 = 0;
 __constant__ cudaSurfaceObject_t d_surfObj0 = 0;
 __constant__ cudaSurfaceObject_t d_surfObj1 = 0;
 
+// 随机数生成器
+curandStatePhilox4_32_10_t* d_rng_states;
+
 
 
 
@@ -52,12 +55,6 @@ __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int
     if (tid >= PATHS) return;
     /* sequence=tid, offset=0 → 线程独立子流 */
     curand_init(seed, tid, 0, &state[tid]);
-}
-
-void init_random_state(curandStatePhilox4_32_10_t *d_state, unsigned long seed, int PATHS){
-    cudaMalloc(&d_state,  PATHS*sizeof(*d_state));
-    setup<<<(PATHS+1023)/1024,1024>>>(d_state, seed, PATHS);
-    cudaDeviceSynchronize();
 }
 
 
@@ -186,7 +183,6 @@ void init_global_XYZEW_V() {
     }
 
     // 初始化 V 数组
-    printf("Initializing V array...\n");
     for (int x = 0; x < h_SIZE_X; x++) {
         for (int y = 0; y < h_SIZE_Y; y++) {
             for (int z = 0; z < h_SIZE_Z; z++) {
@@ -223,8 +219,6 @@ void init_global_XYZEW_V() {
     //     exit(1);
     // }
 
-    
-
     // 复制数据到设备
     cudaMemcpy(d_X, h_X, h_SIZE_X * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_Y, h_Y, h_SIZE_Y * sizeof(float), cudaMemcpyHostToDevice);
@@ -247,6 +241,9 @@ void init_global_XYZEW_V() {
 
     printf("init_global_XYZEW_V is done\n");
 
+    init_texture_surface_object();
+    printf("init_texture_surface_object is done\n");
+
     // 释放主机内存
     free(h_X);
     free(h_Y);
@@ -254,6 +251,41 @@ void init_global_XYZEW_V() {
     free(h_E);
     free(h_W);
     free(h_V);
+
+    // 设置随机数生成器
+    cudaMalloc(&d_rng_states,  h_sWEYZX*sizeof(*d_rng_states));
+    // init_random_state();
+}
+
+// 清理函数
+void clean_global_XYZEW_V() {
+    if (d_X) cudaFree(d_X);
+    if (d_Y) cudaFree(d_Y);
+    if (d_Z) cudaFree(d_Z);
+    if (d_E) cudaFree(d_E);
+    if (d_W) cudaFree(d_W);
+    if (d_V) cudaFree(d_V);
+    if (d_V_tp1) cudaFree(d_V_tp1);
+    if (d_results) cudaFree(d_results);
+    if (cuArray0) cudaFreeArray(cuArray0);
+    if (cuArray1) cudaFreeArray(cuArray1);
+    if (d_rng_states) cudaFree(d_rng_states);
+
+    d_X = nullptr;
+    d_Y = nullptr;
+    d_Z = nullptr;
+    d_E = nullptr;
+    d_W = nullptr;
+    d_V = nullptr;
+    d_V_tp1 = nullptr;
+    d_results = nullptr;
+
+    printf("clean_global_XYZEW_V is done\n");
+}   
+
+void init_random_state() {
+    
+    setup<<<(h_sWEYZX+1023)/1024,1024>>>(d_rng_states, 101, h_sWEYZX);
 }
 
 void init_texture_surface_object() {
@@ -262,19 +294,16 @@ void init_texture_surface_object() {
     cudaMalloc3DArray(&cuArray0, &channelDesc, extent, cudaArrayDefault);
     cudaMalloc3DArray(&cuArray1, &channelDesc, extent, cudaArrayDefault);
 
-    cudaMemcpy3DParms copyParams0 = {0};
-    copyParams0.srcPtr = make_cudaPitchedPtr(d_V, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
-    copyParams0.dstArray = cuArray0;
-    copyParams0.extent = extent;
-    copyParams0.kind = cudaMemcpyDeviceToDevice;
-    cudaMemcpy3D(&copyParams0);
-    
-    cudaMemcpy3DParms copyParams1 = {0};
-    copyParams1.srcPtr = make_cudaPitchedPtr(d_V+h_sYZX, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
-    copyParams1.dstArray = cuArray1;
-    copyParams1.extent = extent;
-    copyParams1.kind = cudaMemcpyDeviceToDevice;
-    cudaMemcpy3D(&copyParams1);
+    cudaMemcpy3DParms copyParams = {0};
+    copyParams.extent = extent;
+    copyParams.kind = cudaMemcpyDeviceToDevice;
+
+    copyParams.dstArray = cuArray0;
+    copyParams.srcPtr = make_cudaPitchedPtr(d_V, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
+    cudaMemcpy3D(&copyParams);
+    copyParams.dstArray = cuArray1;
+    copyParams.srcPtr = make_cudaPitchedPtr(d_V+h_sYZX, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
+    cudaMemcpy3D(&copyParams);
 
     // -- 绑定纹理对象
     cudaResourceDesc resDesc;
@@ -309,47 +338,25 @@ void init_texture_surface_object() {
 void copy_cudaarray_to_vtp1() {
     cudaExtent extent = make_cudaExtent(h_SIZE_X, h_SIZE_Z, h_SIZE_Y);
     cudaMemcpy3DParms copyParams = {0};
-    copyParams.srcArray = cuArray0;
-    copyParams.dstPtr = make_cudaPitchedPtr(d_V_tp1, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
     copyParams.extent = extent;
     copyParams.kind = cudaMemcpyDeviceToDevice;
-    cudaMemcpy3D(&copyParams);
 
+    copyParams.srcArray = cuArray0;
+    copyParams.dstPtr = make_cudaPitchedPtr(d_V_tp1, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
+    cudaMemcpy3D(&copyParams);
+ 
     copyParams.srcArray = cuArray1;
     copyParams.dstPtr = make_cudaPitchedPtr(d_V_tp1+h_sYZX, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
     cudaMemcpy3D(&copyParams);
 
 }
 
-// 清理函数
-void clean_global_XYZEW_V() {
-    if (d_X) cudaFree(d_X);
-    if (d_Y) cudaFree(d_Y);
-    if (d_Z) cudaFree(d_Z);
-    if (d_E) cudaFree(d_E);
-    if (d_W) cudaFree(d_W);
-    if (d_V) cudaFree(d_V);
-    if (d_V_tp1) cudaFree(d_V_tp1);
-    if (d_results) cudaFree(d_results);
-    if (cuArray0) cudaFreeArray(cuArray0);
-    if (cuArray1) cudaFreeArray(cuArray1);
-
-    d_X = nullptr;
-    d_Y = nullptr;
-    d_Z = nullptr;
-    d_E = nullptr;
-    d_W = nullptr;
-    d_V = nullptr;
-    d_V_tp1 = nullptr;
-    d_results = nullptr;
-
-    printf("clean_global_XYZEW_V is done\n");
-}   
 
 
 // 一轮计算后重置Vtp1
 void reset_Vtp1() {
     // cudaMemcpy(d_V_tp1, d_V, h_sEYZX * sizeof(float), cudaMemcpyDeviceToDevice);
+
     cudaExtent extent = make_cudaExtent(h_SIZE_X, h_SIZE_Z, h_SIZE_Y);
     cudaMemcpy3DParms copyParams = {0};
     copyParams.dstArray = cuArray0;
@@ -359,8 +366,10 @@ void reset_Vtp1() {
     cudaMemcpy3D(&copyParams);
 
     copyParams.dstArray = cuArray1;
-    copyParams.srcPtr = make_cudaPitchedPtr(d_V, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
+    copyParams.srcPtr = make_cudaPitchedPtr(d_V+h_sYZX, (h_SIZE_X) * sizeof(float), h_SIZE_X, h_SIZE_Z);
     cudaMemcpy3D(&copyParams);
+
+    printf("reset_Vtp1 is done\n");
 }
 
 
@@ -396,14 +405,13 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
     float X1 = (X - d_MIN_X) * d_SCALE_TO_INT_X + 0.5f;
     float Y1 = (Y - d_MIN_Y) * d_SCALE_TO_INT_Y + 0.5f;
     float Z1 = (Z - d_MIN_Z) * d_SCALE_TO_INT_Z + 0.5f;
-    float res2;
+    float res = 0;
     if (E == 0) {
-        res2 = tex3D<float>(d_texObj0, X1, Z1, Y1);
+        res = tex3D<float>(d_texObj0, X1, Z1, Y1);
     } else {
-        res2 = tex3D<float>(d_texObj1, X1, Z1, Y1);
+        res = tex3D<float>(d_texObj1, X1, Z1, Y1);
     }
-
-    return res2;
+    return res;              
 
 }
 
@@ -562,7 +570,6 @@ __global__ void V_tp1_kernel(int offset, int t) {
 
     // 查找最大值
     for (int i = 0; i < d_SIZE_W; i++) {
-
         if (Y >= d_d_W[i]) {
             float current = d_d_results[W_index + i*d_sEYZX];
             if (current > max_w) {
@@ -660,3 +667,108 @@ __global__ void test_array_kernel(cudaTextureObject_t texObj0, cudaTextureObject
     d_d_results[idx] = res2 - res;
 
 }
+
+
+
+
+float compute_l(float l, float * trans_tau_d, int T) {
+    float a3 = 1.00/(T/h_P);
+
+    // 这一段后续优化为宏
+    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
+    int X_index_1= (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
+    int X_index_2=(int)fminf(X_index_1 + 1, h_SIZE_X - 1);
+    float delta_x = (h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X - X_index_1;
+
+    int Y_index_1 = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
+    int Y_index_2 = (int)fminf(Y_index_1 + 1, h_SIZE_Y - 1);
+    float delta_y = (h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y - Y_index_1;
+
+    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
+    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
+    int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
+
+    int index1 = h_IDX_V(0, Y_index_1, Z_index_1, X_index_1);
+    int index2 = h_IDX_V(0, Y_index_1, Z_index_1, X_index_2);   
+    int index3 = h_IDX_V(0, Y_index_2, Z_index_1, X_index_1);
+    int index4 = h_IDX_V(0, Y_index_1, Z_index_2, X_index_1);
+    int index5 = h_IDX_V(0, Y_index_2, Z_index_1, X_index_2);
+    int index6 = h_IDX_V(0, Y_index_1, Z_index_2, X_index_2);
+    int index7 = h_IDX_V(0, Y_index_2, Z_index_2, X_index_1);
+    int index8 = h_IDX_V(0, Y_index_2, Z_index_2, X_index_2);
+
+
+    // 设置随机数生成器
+    init_random_state();
+
+    // 设置block和grid
+    dim3 block(896);
+    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
+
+    dim3 block2(1024);
+    dim3 grid2((h_sEYZX + block2.x - 1) / block2.x);
+    for (int t = T-1; t >= 0; t--) {
+        float P_tau_t = trans_tau_d[t];
+        
+        // 计算V(t)
+        // t = -1;
+        WEYZX_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        CUDA_CHECK(cudaGetLastError());     // launch
+        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
+
+        // 计算W的最大值
+        V_tp1_kernel<<<grid2, block2>>>(0, t);
+        CUDA_CHECK(cudaGetLastError());     // launch
+        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
+
+
+    }
+
+    copy_cudaarray_to_vtp1();
+
+    float out1, out2, out3, out4, out5, out6, out7, out8;
+    cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out2, &d_V_tp1[index2], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out3, &d_V_tp1[index3], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out4, &d_V_tp1[index4], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out5, &d_V_tp1[index5], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out6, &d_V_tp1[index6], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out7, &d_V_tp1[index7], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&out8, &d_V_tp1[index8], sizeof(float), cudaMemcpyDeviceToHost);
+
+
+    float output = (1-delta_x) * (1-delta_y) * (1-delta_z) * out1
+                 + delta_x * (1-delta_y) * (1-delta_z) * out2
+                 + (1-delta_x) * delta_y * (1-delta_z) * out3
+                 + (1-delta_x) * (1-delta_y) * delta_z * out4
+                 + delta_x * delta_y * (1-delta_z) * out5
+                 + delta_x * (1-delta_y) * delta_z * out6
+                 + (1-delta_x) * delta_y * delta_z * out7
+                 + delta_x * delta_y * delta_z * out8;
+
+
+    float final_X_1, final_X_2, final_Y_1, final_Y_2, final_Z_1, final_Z_2;
+    cudaMemcpy(&final_X_1, &d_X[X_index_1], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_X_2, &d_X[X_index_2], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_Y_1, &d_Y[Y_index_1], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_Y_2, &d_Y[Y_index_2], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_Z_1, &d_Z[Z_index_1], sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(&final_Z_2, &d_Z[Z_index_2], sizeof(float), cudaMemcpyDeviceToHost);
+
+    // float *h_Z = (float *)malloc(h_SIZE_Z * sizeof(float));
+    // cudaMemcpy(h_Z, d_Z, h_SIZE_Z * sizeof(float), cudaMemcpyDeviceToHost);
+    // for(int i = 0 ; i< h_SIZE_Z;i++){
+    // printf("Z = %f\n", h_Z[i]);}
+
+    printf("X_index_1 = %d, X_index_2 = %d, Y_index_1 = %d, Y_index_2 = %d, Z_index_1 = %d, Z_index_2 = %d\n", 
+            X_index_1, X_index_2, Y_index_1, Y_index_2, Z_index_1, Z_index_2);
+    printf("1/2---对应的账户值是：%f, %f, %f, %f, %f, %f\n", 
+            final_X_1, final_X_2, final_Y_1, final_Y_2, final_Z_1, final_Z_2);
+    printf("相应的delta值是：%f, %f, %f\n", delta_x, delta_y, delta_z);
+    printf("out1 = %f, out2 = %f, out3 = %f, out4 = %f, out5 = %f, out6 = %f, out7 = %f, out8 = %f, output = %f\n", 
+            out1, out2, out3, out4, out5, out6, out7, out8, output);
+
+
+    return output;
+}
+

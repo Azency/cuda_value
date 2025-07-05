@@ -9,7 +9,7 @@
 float trans_tau_np[25] = {0.99320371, 0.99275112, 0.99205837, 0.99139464, 0.99058581, 0.98970493, 0.98867356, 0.98749117, 0.98610283, 0.98447572, 0.98255486, 0.98028799, 0.97760967, 0.9744482,  0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776,  0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
 // float trans_tau_np[8] = {0.95508318, 0.9479776, 0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
 
-float compute_l(float l, float * trans_tau_d, int T) {
+float test_compute_l(float l, float * trans_tau_d, int T) {
     float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
@@ -43,10 +43,10 @@ float compute_l(float l, float * trans_tau_d, int T) {
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
     // 设置block和grid
-    dim3 block(512);
+    dim3 block(896);
     dim3 grid((h_sWEYZX + block.x - 1) / block.x);
 
-    dim3 block2(512);
+    dim3 block2(1024);
     dim3 grid2((h_sEYZX + block2.x - 1) / block2.x);
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
@@ -149,24 +149,24 @@ float analyze_kernel(float l, float * trans_tau_d, int T) {
 
     // 设置随机数生成器
     curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = h_sXYZEW;
+    int num_threads = h_sWEYZX;
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
     // 设置block和grid
     dim3 block(512);
-    dim3 grid((h_sXYZEW + block.x - 1) / block.x);
+    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
 
     dim3 block2(512);
-    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
+    dim3 grid2((h_sEYZX + block2.x - 1) / block2.x);
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
         // 分析kernel的性能，计算V(t)
         t = -1;
 
-        nvtxRangePushA("XYZEW_kernel");
-        XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        nvtxRangePushA("WEYZX_kernel");
+        WEYZX_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         nvtxRangePop();
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
@@ -241,7 +241,7 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
         0, 100, 3,
         0, 1,   2,
         0, 800, 3,
-        0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
+        0.15, 0.025, 0.05, 0.05, 0.2, 10000, 1, 100.0);
 
     init_global_XYZEW_V();
 
@@ -284,14 +284,6 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
     }
     free(h_results);
     
-    
-    
-
-
-
-
-
-
 
     time(&end);
     printf("\n cpmputlel cost time = %f\n", difftime(end, start));
@@ -309,18 +301,25 @@ void run2(){
     init_global_config(
         0, 800, 101,
         0, 800, 81,
-        0, 100, 101,
+        0, 100, 81,
         0, 1,   2,
-        0, 800, 81,
+        0, 800, 21,
         0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
 
     init_global_XYZEW_V();
 
-    init_texture_surface_object();
-
     time_t start, end;
     time(&start);
     compute_l(l, trans_tau_np, 25);
+
+    reset_Vtp1();
+
+    compute_l(l, trans_tau_np, 25);
+
+    reset_Vtp1();
+
+    compute_l(l, trans_tau_np, 25);
+
 
     time(&end);
 
