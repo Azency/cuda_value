@@ -26,34 +26,35 @@ float compute_l(float l, float * trans_tau_d, int T) {
     float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
     int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
 
-    int index1 = h_IDX_V(X_index_1, Y_index_1, Z_index_1, 0);
-    int index2 = h_IDX_V(X_index_2, Y_index_1, Z_index_1, 0);   
-    int index3 = h_IDX_V(X_index_1, Y_index_2, Z_index_1, 0);
-    int index4 = h_IDX_V(X_index_1, Y_index_1, Z_index_2, 0);
-    int index5 = h_IDX_V(X_index_2, Y_index_2, Z_index_1, 0);
-    int index6 = h_IDX_V(X_index_2, Y_index_1, Z_index_2, 0);
-    int index7 = h_IDX_V(X_index_1, Y_index_2, Z_index_2, 0);
-    int index8 = h_IDX_V(X_index_2, Y_index_2, Z_index_2, 0);
+    int index1 = h_IDX_V(0, Y_index_1, Z_index_1, X_index_1);
+    int index2 = h_IDX_V(0, Y_index_1, Z_index_1, X_index_2);   
+    int index3 = h_IDX_V(0, Y_index_2, Z_index_1, X_index_1);
+    int index4 = h_IDX_V(0, Y_index_1, Z_index_2, X_index_1);
+    int index5 = h_IDX_V(0, Y_index_2, Z_index_1, X_index_2);
+    int index6 = h_IDX_V(0, Y_index_1, Z_index_2, X_index_2);
+    int index7 = h_IDX_V(0, Y_index_2, Z_index_2, X_index_1);
+    int index8 = h_IDX_V(0, Y_index_2, Z_index_2, X_index_2);
 
 
     // 设置随机数生成器
     curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = h_sXYZEW;
+    int num_threads = h_sWEYZX;
     cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
     setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
 
     // 设置block和grid
     dim3 block(512);
-    dim3 grid((h_sXYZEW + block.x - 1) / block.x);
+    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
 
     dim3 block2(512);
-    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
+    dim3 grid2((h_sEYZX + block2.x - 1) / block2.x);
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
         // 计算V(t)
+        // t = -1;
         nvtxRangePushA("XYZEW_kernel");
-        XYZEW_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        WEYZX_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         nvtxRangePop();
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
@@ -67,6 +68,8 @@ float compute_l(float l, float * trans_tau_d, int T) {
 
 
     }
+
+    copy_cudaarray_to_vtp1();
 
     float out1, out2, out3, out4, out5, out6, out7, out8;
     cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
@@ -116,97 +119,68 @@ float compute_l(float l, float * trans_tau_d, int T) {
     return output;
 }
 
-
-float compute_l2(float l, float * trans_tau_d, int T) {
-    float a3 = 1.00/(T/h_P);
-
-    // 这一段后续优化为宏
-    // MIN_XYZ, h_INITIAL_INVESTMENT, SCALE_TO_INT_X, SCALE_TO_INT_Y, SCALE_TO_INT_Z, SIZE_Z
-    int X_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_X) * h_SCALE_TO_INT_X);
-    int Y_index = (int)floorf((h_INITIAL_INVESTMENT - h_MIN_Y) * h_SCALE_TO_INT_Y);
-    int Z_index_1 = (int)floorf((a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z);
-    float delta_z = (a3 * h_INITIAL_INVESTMENT - h_MIN_Z) * h_SCALE_TO_INT_Z - Z_index_1;
-    int Z_index_2 = (int)fminf(Z_index_1 + 1, h_SIZE_Z - 1);
-
-
-    int index1 = h_IDX_V(X_index, Y_index, Z_index_1, 0);
-    int index2 = h_IDX_V(X_index, Y_index, Z_index_2, 0);
-
-    // 设置随机数生成器
-    curandStatePhilox4_32_10_t* d_rng_states;
-    int num_threads = h_sXYZEW;
-    printf("num_threads = %d\n", num_threads);
-    cudaMalloc(&d_rng_states,  num_threads*sizeof(*d_rng_states));
-    setup<<<(num_threads+1023)/1024,1024>>>(d_rng_states, 101, num_threads);
-
-    // 设置block和grid
-    dim3 block(1024);
-    dim3 grid((num_threads*1024 + block.x - 1) / block.x);
-
-    dim3 block2(1024);
-    dim3 grid2((h_sXYZE + block2.x - 1) / block2.x);
-
-    for (int t = T-1; t >= 0; t--) {
-        float P_tau_t = trans_tau_d[t];
-        
-        // 计算V(t)
-        XYZEW_kernel2<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-        // 计算W的最大值
-        V_tp1_kernel<<<grid2, block2>>>(0, t);
-        CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-
-    }
-
-    float out1, out2;
-    cudaMemcpy(&out1, &d_V_tp1[index1], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&out2, &d_V_tp1[index2], sizeof(float), cudaMemcpyDeviceToHost);
-  
-    float output = out1 + (out2 - out1)*delta_z;
-
-
-    float final_X, final_Y, final_Z_1, final_Z_2;
-    cudaMemcpy(&final_X, &d_X[X_index], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Y, &d_Y[Y_index], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Z_1, &d_Z[Z_index_1], sizeof(float), cudaMemcpyDeviceToHost);
-    cudaMemcpy(&final_Z_2, &d_Z[Z_index_2], sizeof(float), cudaMemcpyDeviceToHost);
-    
-    printf("index1 = %d, index2 = %d\n", index1, index2);
-    printf("out1 = %f, out2 = %f\n", out1, out2);
-    printf("X_index = %d, Y_index = %d, Z_index_1 = %d, Z_index_2 = %d\n", X_index, Y_index, Z_index_1, Z_index_2);
-    printf("1/2---对应的账户值是：%f, %f, %f, %f\n", final_X, final_Y, final_Z_1, final_Z_2);
-
-
-    cudaFree(d_rng_states);
-
-    return output;
-}
-//female8:0.0438
-//female9:[0.045（0.001）， 0.0451（-0.03）]
 void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda #3: 0.03 female25  0.03(1200. 101.607758)
     float l = 0.039748f;
     printf("l = %f\n", l);
 
     init_global_config(
-        0, 800, 101,
-        0, 800, 81,
-        0, 100, 11,
+        0, 800, 7,
+        0, 800, 3,
+        0, 100, 3,
         0, 1,   2,
-        0, 800, 81,
+        0, 800, 3,
         0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
 
     init_global_XYZEW_V();
+
+    init_texture_surface_object();
 
     // float output = compute_l2(l, trans_tau_np, 10);
 
     // reset_Vtp1();
     time_t start, end;
     time(&start);
-    float output = compute_l(l, trans_tau_np, 25);
+    
+
+    dim3 block(512);
+    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
+
+    test_array_kernel<<<grid, block>>>(texObj0, texObj1);
+    CUDA_CHECK(cudaGetLastError());     // launch
+    CUDA_CHECK(cudaDeviceSynchronize()); // runtime
+
+
+    float *h_results = (float *)malloc(h_sWEYZX * sizeof(float));
+    cudaMemcpy(h_results, d_results, h_sWEYZX * sizeof(float), cudaMemcpyDeviceToHost);
+    for(int idx = 0; idx < h_sWEYZX; idx++){
+
+        int index_w = idx / h_sEYZX;
+        int remainder = idx % h_sEYZX;
+        int index_e = remainder / h_sYZX;
+        remainder = remainder % h_sYZX;
+        int index_y = remainder / h_sZX;
+        remainder = remainder % h_sZX;
+        int index_z = remainder / h_sX;
+        int index_x = remainder % h_sX;
+        if (index_w > 0){
+            break;
+        }
+        if (true) {
+            printf("W = %d, E = %d, Y = %d, Z = %d, X = %d, results[%d] = %f\n", 
+                    index_w, index_e, index_y, index_z, index_x, idx, h_results[idx]);
+        }
+    }
+    free(h_results);
+    
+    
+    
+
+
+
+
+
+
+
     time(&end);
     printf("\n cpmputlel cost time = %f\n", difftime(end, start));
 
@@ -216,58 +190,40 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
 
 }
 
+void run2(){
+    float l = 0.039748f;
+    printf("l = %f\n", l);
+
+    init_global_config(
+        0, 800, 101,
+        0, 800, 81,
+        0, 100, 101,
+        0, 1,   2,
+        0, 800, 81,
+        0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
+
+    init_global_XYZEW_V();
+
+    init_texture_surface_object();
+
+    time_t start, end;
+    time(&start);
+    compute_l(l, trans_tau_np, 25);
+
+    time(&end);
+
+    printf("\n cpmputlel cost time = %f\n", difftime(end, start));
+
+    clean_global_XYZEW_V();
+}
 
 
 int main() {
 
-    run();
+    run2();
     return 0;
 }
 
-// 测试随机数 ----------------------------      ------------------------------  start
-// #include <curand_kernel.h>
-
-// __global__ void mc_kernel(curandStatePhilox4_32_10_t *state,
-//                           float *payoff, int steps)
-// {
-//     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-//     curandStatePhilox4_32_10_t s = state[tid];
-
-//     float S = 100.f;                       // 例如股票现价
-//     float mu = 0.06f, sigma = 0.2f, dt = 1.f/252;
-//     // for (int t = 0; t < steps; ++t) {
-//     //     float z = curand_normal(&s);       // N(0,1)
-//     //     S *= __expf((mu - .5f*sigma*sigma)*dt + sigma*sqrtf(dt)*z);
-//     // }
-//     payoff[tid] = curand_normal(&s);   // 欧式看涨
-
-//     state[tid] = s;                        // 写回
-// }
-
-// __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHS)
-// {
-//     int tid = blockIdx.x * blockDim.x + threadIdx.x;
-//     if (tid >= PATHS) return;
-//     /* sequence=tid, offset=0 → 线程独立子流 */
-//     curand_init(seed, tid, 0, &state[tid]);
-// }
-
-// int main() {
-//     const int PATHS = 1<<20;
-//     curandStatePhilox4_32_10_t *d_state;
-//     float *d_payoff;
-//     cudaMalloc(&d_state,  PATHS*sizeof(*d_state));
-//     cudaMalloc(&d_payoff, PATHS*sizeof(float));
-
-//     setup<<<PATHS/256,256>>>(d_state, 101);
-//     mc_kernel<<<PATHS/256,256>>>(d_state, d_payoff, /*steps=*/252);
-
-//     float h_payoff[PATHS];
-//     cudaMemcpy(h_payoff, d_payoff, PATHS*sizeof(float), cudaMemcpyDeviceToHost);
-//     printf("h_payoff = %f\n", h_payoff[14]);
-
-//     // 取均值 …
-// }
 
 
 
