@@ -254,7 +254,6 @@ void init_global_XYZEW_V() {
 
     // 设置随机数生成器
     cudaMalloc(&d_rng_states,  h_sWEYZX*sizeof(*d_rng_states));
-    // init_random_state();
 }
 
 // 清理函数

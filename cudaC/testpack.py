@@ -2,10 +2,10 @@ import compute_l
 import time
 compute_l.init_global_config(
         0, 800, 101,
-        0, 800, 81,
-        0, 100, 81,
+        0, 800, 101,
+        0, 100, 101,
         0, 1,   2,
-        0, 800, 21,
+        0, 800, 101,
         0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
