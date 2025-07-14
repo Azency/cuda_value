@@ -588,7 +588,7 @@ __global__ void V_tp1_kernel(int offset, int t) {
     // d_d_V_tp1[idx] = fmaxf(fmaxf(Y - d_A1 * fmaxf((Y - fminf(Z, Y)), 0.0f), X), max_w) * (X != 0);
 }
 
-
+//used for test function 
 __global__ void test_array_kernel(cudaTextureObject_t texObj0, cudaTextureObject_t texObj1) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= d_sWEYZX) return;

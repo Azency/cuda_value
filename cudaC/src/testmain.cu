@@ -290,50 +290,48 @@ void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda
 
     clean_global_XYZEW_V();
 
-
-
 }
 
-void run2(){
-    float l = 0.039748f;
-    printf("l = %f\n", l);
+// void run2(){
+//     float l = 0.039748f;
+//     printf("l = %f\n", l);
 
-    init_global_config(
-        0, 800, 101,
-        0, 800, 101,
-        0, 100, 101,
-        0, 1,   2,
-        0, 800, 101,
-        0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
+//     init_global_config(
+//         0, 800, 101,
+//         0, 800, 101,
+//         0, 100, 101,
+//         0, 1,   2,
+//         0, 800, 101,
+//         0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
 
-    init_global_XYZEW_V();
+//     init_global_XYZEW_V();
 
-    time_t start, end;
-    time(&start);
-    compute_l(l, trans_tau_np, 25);
+//     time_t start, end;
+//     time(&start);
+//     compute_l(l, trans_tau_np, 25);
 
-    reset_Vtp1();
+//     reset_Vtp1();
 
-    compute_l(l, trans_tau_np, 25);
+//     compute_l(l, trans_tau_np, 25);
 
-    reset_Vtp1();
+//     reset_Vtp1();
 
-    compute_l(l, trans_tau_np, 25);
-
-
-    time(&end);
-
-    printf("\n cpmputlel cost time = %f\n", difftime(end, start));
-
-    clean_global_XYZEW_V();
-}
+//     compute_l(l, trans_tau_np, 25);
 
 
-int main() {
+//     time(&end);
 
-    run2();
-    return 0;
-}
+//     printf("\n cpmputlel cost time = %f\n", difftime(end, start));
+
+//     clean_global_XYZEW_V();
+// }
+
+
+// int main() {
+
+//     run2();
+//     return 0;
+// }
 
 
 
