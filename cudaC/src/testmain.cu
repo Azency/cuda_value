@@ -3,11 +3,11 @@
 #include <nvtx3/nvToolsExt.h>
 //male
 // float trans_tau_np[25] = {0.98919799, 0.98850676, 0.98755648, 0.98662116, 0.98551021, 0.98429417, 0.98286998, 0.98122165, 0.97926787, 0.97695839, 0.97422256, 0.97100599, 0.96725252, 0.96291495, 0.95794281, 0.95227777, 0.9458399,  0.938519, 0.93016787, 0.92060485, 0.9096251,  0.89702214, 0.88261673, 0.86628806, 0.84799892}
-// float trans_tau_np[10] = {0.95227777, 0.9458399,  0.938519, 0.93016787, 0.92060485, 0.9096251,  0.89702214, 0.88261673, 0.86628806, 0.84799892};
+// float trans_tau_np[16] = {0.97695839, 0.97422256, 0.97100599, 0.96725252, 0.96291495, 0.95794281, 0.95227777, 0.9458399,  0.938519, 0.93016787, 0.92060485, 0.9096251,  0.89702214, 0.88261673, 0.86628806, 0.84799892};
 
 //female
-float trans_tau_np[25] = {0.99320371, 0.99275112, 0.99205837, 0.99139464, 0.99058581, 0.98970493, 0.98867356, 0.98749117, 0.98610283, 0.98447572, 0.98255486, 0.98028799, 0.97760967, 0.9744482,  0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776,  0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
-// float trans_tau_np[8] = {0.95508318, 0.9479776, 0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
+// float trans_tau_np[25] = {0.99320371, 0.99275112, 0.99205837, 0.99139464, 0.99058581, 0.98970493, 0.98867356, 0.98749117, 0.98610283, 0.98447572, 0.98255486, 0.98028799, 0.97760967, 0.9744482,  0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776,  0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
+float trans_tau_np[15] = {0.98255486, 0.98028799, 0.97760967, 0.9744482,  0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776, 0.93969821, 0.93010926, 0.91908749, 0.90653058, 0.89236242, 0.87653274};
 
 float test_compute_l(float l, float * trans_tau_d, int T) {
     float a3 = 1.00/(T/h_P);
@@ -229,109 +229,108 @@ float analyze_kernel(float l, float * trans_tau_d, int T) {
     return output;
 }
 
-//female8:0.0438
-//female9:[0.045（0.001）， 0.0451（-0.03）]
-void run(){//cuda3:0.0397, cuda 2: 0.0399;cuda 1: 0.0403；cuda0: 0.0405 ;//cuda #3: 0.03 female25  0.03(1200. 101.607758)
-    float l = 0.039748f;
-    printf("l = %f\n", l);
-
-    init_global_config(
-        0, 800, 7,
-        0, 800, 3,
-        0, 100, 3,
-        0, 1,   2,
-        0, 800, 3,
-        0.15, 0.025, 0.05, 0.05, 0.2, 10000, 1, 100.0);
-
-    init_global_XYZEW_V();
-
-    init_texture_surface_object();
-
-    // float output = compute_l2(l, trans_tau_np, 10);
-
-    // reset_Vtp1();
-    time_t start, end;
-    time(&start);
-    
-
-    dim3 block(512);
-    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
-
-    test_array_kernel<<<grid, block>>>(texObj0, texObj1);
-    CUDA_CHECK(cudaGetLastError());     // launch
-    CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-
-    float *h_results = (float *)malloc(h_sWEYZX * sizeof(float));
-    cudaMemcpy(h_results, d_results, h_sWEYZX * sizeof(float), cudaMemcpyDeviceToHost);
-    for(int idx = 0; idx < h_sWEYZX; idx++){
-
-        int index_w = idx / h_sEYZX;
-        int remainder = idx % h_sEYZX;
-        int index_e = remainder / h_sYZX;
-        remainder = remainder % h_sYZX;
-        int index_y = remainder / h_sZX;
-        remainder = remainder % h_sZX;
-        int index_z = remainder / h_sX;
-        int index_x = remainder % h_sX;
-        if (index_w > 0){
-            break;
-        }
-        if (true) {
-            printf("W = %d, E = %d, Y = %d, Z = %d, X = %d, results[%d] = %f\n", 
-                    index_w, index_e, index_y, index_z, index_x, idx, h_results[idx]);
-        }
-    }
-    free(h_results);
-    
-
-    time(&end);
-    printf("\n cpmputlel cost time = %f\n", difftime(end, start));
-
-    clean_global_XYZEW_V();
-
-}
-
-// void run2(){
-//     float l = 0.039748f;
+// void run(){
+//     float l = 0.034805f;
 //     printf("l = %f\n", l);
 
 //     init_global_config(
-//         0, 800, 101,
-//         0, 800, 101,
-//         0, 100, 101,
+//         0, 1200, 1201,
+//         0, 1200, 91,
+//         0, 1200/15, 13,
 //         0, 1,   2,
-//         0, 800, 101,
-//         0.15, 0.025, 0.05, 0.05, 0.2, 1000, 1, 100.0);
+//         0, 1200, 181,
+//         0.15, 0.025, 0.05, 0.05, 0.2, 100, 1, 100.0);
 
 //     init_global_XYZEW_V();
 
+//     init_texture_surface_object();
+
+//     float output = test_compute_l(l, trans_tau_np, 15);
+
+//     reset_Vtp1();
 //     time_t start, end;
 //     time(&start);
-//     compute_l(l, trans_tau_np, 25);
+    
 
-//     reset_Vtp1();
+//     dim3 block(512);
+//     dim3 grid((h_sWEYZX + block.x - 1) / block.x);
 
-//     compute_l(l, trans_tau_np, 25);
+//     test_array_kernel<<<grid, block>>>(texObj0, texObj1);
+//     CUDA_CHECK(cudaGetLastError());     // launch
+//     CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
-//     reset_Vtp1();
 
-//     compute_l(l, trans_tau_np, 25);
+//     float *h_results = (float *)malloc(h_sWEYZX * sizeof(float));
+//     cudaMemcpy(h_results, d_results, h_sWEYZX * sizeof(float), cudaMemcpyDeviceToHost);
+//     for(int idx = 0; idx < h_sWEYZX; idx++){
 
+//         int index_w = idx / h_sEYZX;
+//         int remainder = idx % h_sEYZX;
+//         int index_e = remainder / h_sYZX;
+//         remainder = remainder % h_sYZX;
+//         int index_y = remainder / h_sZX;
+//         remainder = remainder % h_sZX;
+//         int index_z = remainder / h_sX;
+//         int index_x = remainder % h_sX;
+//         if (index_w > 0){
+//             break;
+//         }
+//         if (true) {
+//             printf("W = %d, E = %d, Y = %d, Z = %d, X = %d, results[%d] = %f\n", 
+//                     index_w, index_e, index_y, index_z, index_x, idx, h_results[idx]);
+//         }
+//     }
+//     free(h_results);
+    
 
 //     time(&end);
-
 //     printf("\n cpmputlel cost time = %f\n", difftime(end, start));
 
 //     clean_global_XYZEW_V();
+
 // }
 
+void run2(){
+    float l = 0.034105f;
+    printf("T = 15,l = %f\n", l);
 
-// int main() {
+    init_global_config(
+        0, 1200, 601,
+        0, 1200, 181,
+        0, 1200/15, 13,
+        0, 1,   2,
+        0, 1200, 181,
+        0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0);
 
-//     run2();
-//     return 0;
-// }
+
+    init_global_XYZEW_V();
+
+    time_t start, end;
+    time(&start);
+    test_compute_l(l, trans_tau_np, 15);
+
+    reset_Vtp1();
+
+    // compute_l(l, trans_tau_np, 25);
+
+    // reset_Vtp1();
+
+    // compute_l(l, trans_tau_np, 25);
+
+
+    time(&end);
+
+    printf("\n cpmputlel cost time = %f\n", difftime(end, start));
+
+    clean_global_XYZEW_V();
+}
+
+
+int main() {
+
+    run2();
+    return 0;
+}
 
 
 

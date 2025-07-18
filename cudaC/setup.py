@@ -38,7 +38,7 @@ class BuildExt(build_ext):
         nvcc = f"{CUDA_HOME}/bin/nvcc"
         cmd  = [nvcc,
                 "-O3", "--use_fast_math",
-                "-arch=sm_86",                # RTX-3090, 改成你实际 GPU
+                # "-arch=sm_86",                # RTX-3090, 改成你实际 GPU
                 "-std=c++17",                 # 主机端仍走 C++ 解析
                 "-Xcompiler", "-fPIC",
                 "-c", src, "-o", obj_path] + \
