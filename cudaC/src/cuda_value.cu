@@ -499,7 +499,7 @@ __global__ void WEYZX_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
     const float Z10 = fmaxf(Z, a3 * XmW);
           
-    const float Y11 = minf(Y - W, Y * invX * XmW); // W>0 && W>min_ZYt
+    const float Y11 = fminf(Y - W, Y * invX * XmW);  // W>0 && W>min_ZYt
     const float Z11 = fmaxf(Z * invX * XmW, a3 * XmW);
 
     // ---------- 4 个掩码 ----------
