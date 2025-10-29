@@ -29,6 +29,8 @@ extern float h_SCALE_TO_INT_X, h_SCALE_TO_INT_Y, h_SCALE_TO_INT_Z;
 
 extern float h_A1,h_P, h_INITIAL_INVESTMENT, h_DELTA_T;
 
+// 线性 X 网格，无需额外参数
+
 
 extern float *d_X, *d_Y, *d_Z, *d_W, *d_V, *d_V_tp1, *d_results;
 extern int *d_E;
