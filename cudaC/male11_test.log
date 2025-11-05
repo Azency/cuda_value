@@ -1,0 +1,111 @@
+T = 11, initial_l is 0.038884
+time used:  9873.236581325531
+out is  99.8143539428711
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 99.814354, out2 = 101.017517, out3 = 100.489067, out4 = 100.562988, out5 = 101.359131, out6 = 101.701317, out7 = 101.163330, out8 = 101.900078, output = 99.814354
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.038594
+time used:  9841.799221992493
+out is  99.85415649414062
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 99.854156, out2 = 101.058380, out3 = 100.530388, out4 = 100.617409, out5 = 101.400917, out6 = 101.756416, out7 = 101.217148, out8 = 101.954895, output = 99.854156
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.037531
+time used:  14574.751334905624
+out is  100.04155731201172
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 100.041557, out2 = 101.251205, out3 = 100.723114, out4 = 100.838020, out5 = 101.596291, out6 = 101.979828, out7 = 101.431610, out8 = 102.174316, output = 100.041557
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.037766
+time used:  14582.70258140564
+out is  99.98966979980469
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 99.989670, out2 = 101.197517, out3 = 100.669067, out4 = 100.786461, out5 = 101.541779, out6 = 101.927818, out7 = 101.382706, out8 = 102.124687, output = 99.989670
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.037707
+time used:  14596.502930879593
+out is  100.0013656616211
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 100.001366, out2 = 101.209488, out3 = 100.681984, out4 = 100.799629, out5 = 101.554054, out6 = 101.940796, out7 = 101.394630, out8 = 102.136986, output = 100.001366
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.037713
+time used:  14715.223042964935
+out is  100.00011444091797
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 100.000114, out2 = 101.208061, out3 = 100.680550, out4 = 100.798271, out5 = 101.552841, out6 = 101.939461, out7 = 101.393478, out8 = 102.135834, output = 100.000114
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.036125
+time used:  14010.424971818924
+out is  100.0128173828125
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 100.012817, out2 = 101.217400, out3 = 100.671577, out4 = 100.886986, out5 = 101.554298, out6 = 102.014038, out7 = 101.437561, out8 = 102.189430, output = 100.012817
+clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 11, initial_l is 0.036189
+time used:  14012.762582302094
+out is  99.99998474121094
+min_X: 0.000000, max_X: 1100.000000, size_X: 969, min_Y: 0.000000, max_Y: 1100.000000, size_Y: 485, min_Z: 0.000000, max_Z: 100.000000, size_Z: 23, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 23, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+X_index_1 = 88, X_index_2 = 89, Y_index_1 = 44, Y_index_2 = 45, Z_index_1 = 2, Z_index_2 = 3
+1/2---对应的账户值是：100.000000, 101.136360, 100.000000, 102.272728, 9.090909, 13.636364
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 99.999985, out2 = 101.203835, out3 = 100.657875, out4 = 100.872826, out5 = 101.540886, out6 = 101.999405, out7 = 101.423538, out8 = 102.175148, output = 99.999985
+clean_global_XYZEW_V is done

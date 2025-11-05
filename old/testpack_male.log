@@ -1,0 +1,7 @@
+nohup: 忽略输入
+CUDA src/cuda_value.cu:715 out of memory
+min_X: 0.000000, max_X: 1200.000000, size_X: 1001, min_Y: 0.000000, max_Y: 1200.000000, size_Y: 169, min_Z: 0.000000, max_Z: 85.714286, size_Z: 13, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 1200.000000, size_W: 169, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 100000, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
