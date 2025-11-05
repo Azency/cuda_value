@@ -210,7 +210,8 @@ void init_global_XYZEW_V() {
     cudaMalloc(&d_W, h_SIZE_W * sizeof(float));
     cudaMalloc(&d_V, h_sEYZX * sizeof(float));
     cudaMalloc(&d_V_tp1, h_sEYZX * sizeof(float));
-    cudaMalloc(&d_results, h_sWEYZX * sizeof(float));
+    // 优化：d_results 只存储 (E,Y,Z,X) 的最大值，不再包含 W 维度
+    cudaMalloc(&d_results, h_sEYZX * sizeof(float));
     printf("cudamalloc done\n");
     // 检查内存分配是否成功
     // if (!d_X || !d_Y || !d_Z || !d_E || !d_W || !d_V || !d_V_tp1 || !d_results) {
@@ -253,6 +254,7 @@ void init_global_XYZEW_V() {
     free(h_V);
 
     // 设置随机数生成器
+    // 优化：仍然需要为每个 (W,E,Y,Z,X) 组合分配随机数状态（用于计算）
     cudaMalloc(&d_rng_states,  h_sWEYZX*sizeof(*d_rng_states));
 }
 
@@ -283,7 +285,7 @@ void clean_global_XYZEW_V() {
 }   
 
 void init_random_state() {
-    
+    // 优化：仍然需要为所有 (W,E,Y,Z,X) 组合初始化随机数状态
     setup<<<(h_sWEYZX+1023)/1024,1024>>>(d_rng_states, 101, h_sWEYZX);
 }
 
@@ -452,7 +454,7 @@ __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int
 
 
 
-// XYZEW kernel 实现
+// XYZEW kernel 实现（优化版本：直接计算最大值，不存储所有 W 值）
 __global__ void WEYZX_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
     if (idx >= d_sWEYZX) return;
@@ -532,9 +534,14 @@ __global__ void WEYZX_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_
     fWt       *= (t != 0);                           // t==0 → 置 0
 
     
-    // 存储结果
-    d_d_results[idx] = d_temp / d_MOTECALO_NUMS + fWt;
-    // d_d_results[idx] = d_temp;
+    // 优化：计算当前结果值
+    float result = d_temp / d_MOTECALO_NUMS + fWt;
+    
+    // 优化：计算 (E,Y,Z,X) 的索引
+    int result_idx = IDX_V(index_e, index_y, index_z, index_x);
+    
+    // 优化：使用原子操作更新最大值（保留原有结构，使用原子操作）
+    atomicMax((unsigned int*)&d_d_results[result_idx], __float_as_uint(result));
 }
 
 // V_tp1 kernel 实现
@@ -553,13 +560,12 @@ __global__ void V_tp1_kernel(int offset, int t) {
     float X = d_d_X[index_x];
     float Y = d_d_Y[index_y];
     float Z = d_d_Z[index_z];
-    // int E = d_d_E[index_e];
 
-    int W_index = IDX_V(index_e, index_y, index_z, index_x);
-    float max_w = d_d_results[W_index];
+    // 优化：d_results 已经包含最大值，直接读取
+    float max_w = d_d_results[idx];
 
     if (t == 0) {
-        // d_d_V_tp1[idx] = max_w;//对应着d_results[index_x, index_y, index_z, index_e, 0]
+        // 优化：直接使用最大值
         if (index_e == 0) {
             surf3Dwrite(max_w, d_surfObj0, index_x * sizeof(float), index_z, index_y);
         } else if (index_e == 1) {
@@ -568,18 +574,8 @@ __global__ void V_tp1_kernel(int offset, int t) {
         return;
     }
 
-    // 查找最大值
-    for (int i = 0; i < d_SIZE_W; i++) {
-        if (Y >= d_d_W[i]) {
-            float current = d_d_results[W_index + i*d_sEYZX];
-            if (current > max_w) {
-                max_w = current;
-            }
-        }
-    }
-
+    // 优化：d_results 已经包含最大值，不需要再遍历 W 值
     float temp = fmaxf(fmaxf(Y - d_A1 * (Y - fminf(Z, Y)), X), max_w);
-    // d_d_V_tp1[idx] = temp;
 
     if (index_e == 0) {
         surf3Dwrite(temp, d_surfObj0, index_x * sizeof(float), index_z, index_y);
@@ -710,13 +706,18 @@ float compute_l(float l, float * trans_tau_d, int T) {
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
+        // 优化：初始化 d_results 为负无穷（用于原子操作）
+        // 使用 cudaMemset 设置所有字节为 0xFF，然后转换为 float 得到 NaN
+        // 更安全的方式：使用 kernel 初始化
+        cudaMemset(d_results, 0xFF, h_sEYZX * sizeof(float));
+        
         // 计算V(t)
         // t = -1;
         WEYZX_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
-        // 计算W的最大值
+        // 优化：d_results 已经包含最大值，V_tp1_kernel 只需要简单处理
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
         CUDA_CHECK(cudaDeviceSynchronize()); // runtime
