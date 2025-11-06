@@ -386,9 +386,6 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
     // int Y_up   = fminf(Y_down + 1, d_SIZE_Y - 1);
     // int Z_up   = fminf(Z_down + 1, d_SIZE_Z - 1);
 
-    // // float dx   = (X - d_d_X[X_down]) * d_SCALE_TO_INT_X;
-    // // float dy   = (Y - d_d_Y[Y_down]) * d_SCALE_TO_INT_Y; 
-    // // float dz   = (Z - d_d_Z[Z_down]) * d_SCALE_TO_INT_Z;
 
     // float dx = (X - d_MIN_X) * d_SCALE_TO_INT_X - X_down;
     // float dy = (Y - d_MIN_Y) * d_SCALE_TO_INT_Y - Y_down;

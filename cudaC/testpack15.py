@@ -6,10 +6,10 @@ compute_l.init_global_config(
         0, 100, 31,
         0, 1,   2,
         0, 100, 31,
-        0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
+        0.15, 0.025, 0.05, 0.05, 0.2, 10, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
-# CUDA_VISIBLE_DEVICES=2 nohup python testpack15.py >> male15_test.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=0 nohup python testpack15.py >> newsmale15_test.log 2>&1 &
 
 initial_l = 0.033966
 

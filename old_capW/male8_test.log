@@ -98,3 +98,18 @@ X_index_1 = 64, X_index_2 = 65, Y_index_1 = 64, Y_index_2 = 65, Z_index_1 = 4, Z
 相应的delta值是：0.000000, 0.000000, 0.000000
 out1 = 100.000221, out2 = 101.567368, out3 = 100.514694, out4 = 100.880325, out5 = 101.640961, out6 = 102.308609, out7 = 101.327400, out8 = 102.436584, output = 100.000221
 clean_global_XYZEW_V is done
+nohup: 忽略输入
+T = 8, initial_l is 0.040326
+time used:  0.9023616313934326
+out is  128.57586669921875
+min_X: 0.000000, max_X: 800.000000, size_X: 513, min_Y: 0.000000, max_Y: 800.000000, size_Y: 513, min_Z: 0.000000, max_Z: 100.000000, size_Z: 33, min_E: 0, max_E: 1, size_E: 2, min_W: 0.000000, max_W: 100.000000, size_W: 33, a1: 0.150000, a2: 0.025000, r: 0.050000, mu: 0.050000, sigma: 0.200000, motecalo_nums: 10, p: 1.000000, initial_investment: 100.000000
+V array initialized
+cudamalloc done
+init_global_XYZEW_V is done
+init_texture_surface_object is done
+d_rng_states: optimized (deterministic seed+offset, no pre-allocation)
+X_index_1 = 64, X_index_2 = 65, Y_index_1 = 64, Y_index_2 = 65, Z_index_1 = 4, Z_index_2 = 5
+1/2---对应的账户值是：100.000000, 101.562500, 100.000000, 101.562500, 12.500000, 15.625000
+相应的delta值是：0.000000, 0.000000, 0.000000
+out1 = 128.575867, out2 = 132.161011, out3 = 130.740036, out4 = 151.411240, out5 = 133.376205, out6 = 141.233643, out7 = 137.831177, out8 = 135.129196, output = 128.575867
+clean_global_XYZEW_V is done

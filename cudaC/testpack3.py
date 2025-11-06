@@ -5,18 +5,18 @@ compute_l.init_global_config(
         0, 300, 181,
         0, 100, 31,
         0, 1,   2,
-        0, 100, 31,
+        0, 300, 181,
         0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
 
-# CUDA_VISIBLE_DEVICES=3 nohup python testpack3.py >> male3_test.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=2 nohup python testpack3.py >> male3_test.log 2>&1 &
 
-# initial_l = 0.072361
-initial_l = 0.071304
+initial_l = 0.072373
+# initial_l = 0.071316
 
-# live_list = [0.88261673, 0.86628806, 0.84799892]
-live_list = [0.90653058, 0.89236242, 0.87653274]
+live_list = [0.88261673, 0.86628806, 0.84799892]
+# live_list = [0.90653058, 0.89236242, 0.87653274]
 
 print(f'T = {len(live_list)}, initial_l is {initial_l}')
 

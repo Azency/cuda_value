@@ -11,7 +11,7 @@ compute_l.init_global_config(
 
 compute_l.init_global_XYZEW_V()
 
-# CUDA_VISIBLE_DEVICES=2 nohup python testpack8.py >> male8_test.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=0 nohup python testpack8.py >> male8_test.log 2>&1 &
 # 
 # initial_l = 0.042445
 initial_l = 0.040326

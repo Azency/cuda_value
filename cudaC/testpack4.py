@@ -1,18 +1,18 @@
 import compute_l
 import time
 compute_l.init_global_config(
-    0, 400, 257,
         0, 400, 257,
-        0, 100, 17,
+        0, 400, 257,
+        0, 100, 33,
         0, 1,   2,
-        0, 100, 17,
+        0, 400, 257,
         0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
-# CUDA_VISIBLE_DEVICES=3 nohup python testpack4.py >> male4_test.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=1 nohup python testpack4.py >> male4_test.log 2>&1 &
 
-initial_l = 0.064322
-# initial_l = 0.063138#####等待
+initial_l = 0.064085
+# initial_l = 0.063138
 
 live_list = [0.89702214, 0.88261673, 0.86628806, 0.84799892]
 # live_list = [0.91908749, 0.90653058, 0.89236242, 0.87653274]
