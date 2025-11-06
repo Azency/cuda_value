@@ -5,7 +5,7 @@ compute_l.init_global_config(
         0, 500, 251,
         0, 100, 26,
         0, 1,   2,
-        0, 500, 251,
+        0, 500, 21,
         0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
