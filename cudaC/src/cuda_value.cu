@@ -42,11 +42,32 @@ __constant__ cudaTextureObject_t d_texObj1 = 0;
 __constant__ cudaSurfaceObject_t d_surfObj0 = 0;
 __constant__ cudaSurfaceObject_t d_surfObj1 = 0;
 
-// 随机数生成器
-curandStatePhilox4_32_10_t* d_rng_states;
+// 随机数生成器（改为内核内即时初始化本地状态，取消全局大数组）
 
 
 
+
+// 兼容全范围浮点数（含负数）的原子最大值更新
+__device__ inline float atomicMaxFloat(float* address, float val) {
+    int* address_as_i = (int*)address;
+    int old_i = *address_as_i;
+    float old_f = __int_as_float(old_i);
+    while (old_f < val) {
+        int assumed = old_i;
+        old_i = atomicCAS(address_as_i, assumed, __float_as_int(val));
+        if (old_i == assumed) break;
+        old_f = __int_as_float(old_i);
+    }
+    return old_f;
+}
+
+// 将 d_results 初始化为 -INFINITY，避免 NaN 传播并便于取最大值
+__global__ void init_results_neg_inf(float* arr, int n) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < n) {
+        arr[idx] = -INFINITY;
+    }
+}
 
 // 生成随机数
 __global__ void setup(curandStatePhilox4_32_10_t *state, unsigned long seed, int PATHS)
@@ -253,9 +274,7 @@ void init_global_XYZEW_V() {
     free(h_W);
     free(h_V);
 
-    // 设置随机数生成器
-    // 优化：仍然需要为每个 (W,E,Y,Z,X) 组合分配随机数状态（用于计算）
-    cudaMalloc(&d_rng_states,  h_sWEYZX*sizeof(*d_rng_states));
+    // 随机数生成器：已改为内核内本地初始化，无需全局分配
 }
 
 // 清理函数
@@ -270,7 +289,6 @@ void clean_global_XYZEW_V() {
     if (d_results) cudaFree(d_results);
     if (cuArray0) cudaFreeArray(cuArray0);
     if (cuArray1) cudaFreeArray(cuArray1);
-    if (d_rng_states) cudaFree(d_rng_states);
 
     d_X = nullptr;
     d_Y = nullptr;
@@ -284,10 +302,7 @@ void clean_global_XYZEW_V() {
     printf("clean_global_XYZEW_V is done\n");
 }   
 
-void init_random_state() {
-    // 优化：仍然需要为所有 (W,E,Y,Z,X) 组合初始化随机数状态
-    setup<<<(h_sWEYZX+1023)/1024,1024>>>(d_rng_states, 101, h_sWEYZX);
-}
+void init_random_state() { /* 已改为线程本地初始化，保留空实现以兼容调用方 */ }
 
 void init_texture_surface_object() {
     
@@ -416,9 +431,9 @@ __device__ float lookup_V(float X, float Y, float Z, int E) {
 
 
 // 设备函数实现
-__device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int E_tp1, float P_tau_tp1, float P_tau_gep_tp1, float l, curandStatePhilox4_32_10_t * rng_states, int idx) {
+__device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int E_tp1, float P_tau_tp1, float P_tau_gep_tp1, float l, curandStatePhilox4_32_10_t * state) {
     float d_temp = 0.0f;
-    curandStatePhilox4_32_10_t s = rng_states[idx];
+    curandStatePhilox4_32_10_t s = *state;
     
     // 预计算常用值
     const float exp_term = expf((d_MU - l - 0.5f * d_SIGMA * d_SIGMA) * d_DELTA_T);
@@ -444,7 +459,7 @@ __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int
                                    P_tau_gep_tp1 * V_tp1);
     }
 
-    rng_states[idx] = s;
+    *state = s;
     
     return d_temp ;
 }
@@ -452,93 +467,77 @@ __device__ float monte_carlo_simulation(float XmW, float Y_tp1, float Z_tp1, int
 
 
 // XYZEW kernel 实现（优化版本：直接计算最大值，不存储所有 W 值）
-__global__ void WEYZX_kernel(int offset, int t, curandStatePhilox4_32_10_t *rng_states, float l, float a3, float P_tau_gep_tp1) {
+__global__ void WEYZX_kernel(int offset, int t, int T, float l, float a3, float P_tau_gep_tp1) {
     int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
-    if (idx >= d_sWEYZX) return;
+    if (idx >= d_sEYZX) return;
 
-    // 计算索引
-    int index_w = idx / d_sEYZX;
-    int remainder = idx % d_sEYZX;
-    int index_e = remainder / d_sYZX;
-    remainder = remainder % d_sYZX;
+    // 计算 (E,Y,Z,X) 索引
+    int index_e = idx / d_sYZX;
+    int remainder = idx % d_sYZX;
     int index_y = remainder / d_sZX;
     remainder = remainder % d_sZX;
     int index_z = remainder / d_sX;
     int index_x = remainder % d_sX;
 
-    // 获取值
+    // 获取 (X,Y,Z,E)
     float X = d_d_X[index_x];
     float Y = d_d_Y[index_y];
     float Z = d_d_Z[index_z];
     int E = d_d_E[index_e];
-    float W = d_d_W[index_w];
 
-    if (W > Y) return;
+    float min_ZYt_base = fminf(Z, Y);
+    const float invX  = __frcp_rn(X);
+    float best = -INFINITY;
 
-    float min_ZYt = fminf(Z, Y);
-    float Y_tp1, Z_tp1;
+    // 每线程本地 RNG 状态（跨 t 推进；w 维度作为额外偏移）
+    for (int index_w = 0; index_w < d_SIZE_W; ++index_w) {
+        float W = d_d_W[index_w];
+        if (W > Y) continue;
 
-    int E_tp1 = 1 * (E + W == 0);
+        float XmW = fmaxf(X - W, 0.0f);
+        bool  wz  = (W == 0);
+        int   E_tp1 = 1 * (E + W == 0);
+        bool  ez  = (E_tp1 == 0);
+        bool  wle = (W <= min_ZYt_base);
 
-    // 优化
-    // // ---------- 预先算好共用量 ----------
-    const float invX  = __frcp_rn(X);               // 1/X  (更省时钟)
-    const float XmW   = fmaxf(X - W, 0.0f);         // max(X-W,0)
-    const bool  wz    = (W == 0);
-    const bool  ez    = (E_tp1 == 0);
-    const bool  wle   = (W <= min_ZYt);
+        const float Y00 = fmaxf((1.0f + d_A2) * Y, XmW);
+        const float Z00 = a3 * fmaxf((1.0f + d_A2) * Y, XmW);
+        const float Y01 = fmaxf(Y, XmW);
+        const float Z01 = fmaxf(Z, a3 * XmW);
+        const float Y10 = fmaxf(Y - W, XmW);
+        const float Z10 = fmaxf(Z, a3 * XmW);
+        const float t111 = fminf(Y - W, Y * invX * XmW);
+        const float Y11 = fmaxf(t111, XmW);
+        const float Z11 = fmaxf(Z * invX * XmW, a3 * XmW);
 
-    // ---------- path-specific候选值 ----------
-    const float Y00 = fmaxf((1.0f + d_A2) * Y, XmW);          // W==0 && E==0
-    const float Z00 = a3 * fmaxf((1.0f + d_A2) * Y, XmW);
+        float Y_tp1 = (wz & ez) * Y00 + (wz & !ez) * Y01 + (!wz & wle) * Y10 + (!wz & !wle) * Y11 * (X != 0);
+        Y_tp1 = fmaxf(fminf(Y_tp1, d_MAX_Y), d_MIN_Y);
+        float Z_tp1 = (wz & ez) * Z00 + (wz & !ez) * Z01 + (!wz & wle) * Z10 + (!wz & !wle) * Z11 * (X != 0);
+        Z_tp1 = fmaxf(fminf(Z_tp1, d_MAX_Z), d_MIN_Z);
 
-    const float Y01 = fmaxf(Y, XmW);          // W==0 && E>0
-    const float Z01 = fmaxf(Z, a3 * XmW);
+        float P_tau_tp1 = 1 - P_tau_gep_tp1;
 
-    const float Y10 = fmaxf(Y - W, XmW);                     // W>0 && W<=min_ZYt
-    const float Z10 = fmaxf(Z, a3 * XmW);
+        curandStatePhilox4_32_10_t s;
+        // 与旧版一致：每个 (W,E,Y,Z,X) 用独立 subsequence，时间步用 offset 推进
+        unsigned long long seq = (unsigned long long)index_w * (unsigned long long)d_sEYZX
+                                + (unsigned long long)idx; // idx 是 (E,Y,Z,X) 线性索引
+        unsigned long long ofs = (unsigned long long)(T - 1 - t) * (unsigned long long)d_MOTECALO_NUMS;
+        curand_init(101ULL, seq, ofs, &s);
 
-          
-    const float t111  = fminf(Y - W, Y * invX * XmW);            // W>0 && W>min_ZYt
-    const float Y11 = fmaxf(t111, XmW);
-    const float Z11 = fmaxf(Z * invX * XmW, a3 * XmW);
+        float d_temp = monte_carlo_simulation(
+            XmW, Y_tp1, Z_tp1, E_tp1,
+            P_tau_tp1, P_tau_gep_tp1,
+            l, &s
+        );
 
-    // ---------- 4 个掩码 ----------
-    const float m00 =  wz &  ez;          // W==0 &&  E==0
-    const float m01 =  wz & !ez;          // W==0 &&  E>0
-    const float m10 = !wz &  wle;         // W>0 &&  W<=min_ZYt
-    const float m11 = !wz & !wle;         // W>0 &&  W> min_ZYt
+        float fWt = W - d_A1 * fmaxf(W - min_ZYt_base, 0.0f);
+        fWt *= (t != 0);
+        float result = d_temp / d_MOTECALO_NUMS + fWt;
+        best = fmaxf(best, result);
+    }
 
-    // ---------- 混合得到最终结果 ----------
-    Y_tp1 = m00 * Y00 + m01 * Y01 + m10 * Y10 + m11 * Y11 * (X != 0); 
-    Y_tp1 = fmaxf(fminf(Y_tp1, d_MAX_Y), d_MIN_Y);
-    Z_tp1 = m00 * Z00 + m01 * Z01 + m10 * Z10 + m11 * Z11 * (X != 0); 
-    Z_tp1 = fmaxf(fminf(Z_tp1, d_MAX_Z), d_MIN_Z);
-
-
-
-    float P_tau_tp1 = 1 - P_tau_gep_tp1;
-    // //Monte Carlo 模拟
-    float d_temp = monte_carlo_simulation(
-        XmW, Y_tp1, Z_tp1, E_tp1,
-        P_tau_tp1, P_tau_gep_tp1,
-        l, rng_states, idx
-    );
-
-    // 优化代码
-    // ─── 仅用 3 条浮点指令 + 1 条乘 fWt *= (t != 0) ──────────
-    float fWt = W - d_A1 * fmaxf(W - min_ZYt, 0.0f);   // ← 已同时覆盖两种情况
-    fWt       *= (t != 0);                           // t==0 → 置 0
-
-    
-    // 优化：计算当前结果值
-    float result = d_temp / d_MOTECALO_NUMS + fWt;
-    
-    // 优化：计算 (E,Y,Z,X) 的索引
-    int result_idx = IDX_V(index_e, index_y, index_z, index_x);
-    
-    // 优化：使用原子操作更新最大值（保留原有结构，使用原子操作）
-    atomicMax((unsigned int*)&d_d_results[result_idx], __float_as_uint(result));
+    // 写回 (E,Y,Z,X) 的最大值，后续由 V_tp1_kernel 合成边界再写 surface
+    d_d_results[idx] = best;
 }
 
 // V_tp1 kernel 实现
@@ -695,33 +694,27 @@ float compute_l(float l, float * trans_tau_d, int T) {
     init_random_state();
 
     // 设置block和grid
-    dim3 block(896);
-    dim3 grid((h_sWEYZX + block.x - 1) / block.x);
+    dim3 block(1024);
+    dim3 grid((h_sEYZX + block.x - 1) / block.x);
 
     dim3 block2(1024);
     dim3 grid2((h_sEYZX + block2.x - 1) / block2.x);
     for (int t = T-1; t >= 0; t--) {
         float P_tau_t = trans_tau_d[t];
         
-        // 优化：初始化 d_results 为负无穷（用于原子操作）
-        // 使用 cudaMemset 设置所有字节为 0xFF，然后转换为 float 得到 NaN
-        // 更安全的方式：使用 kernel 初始化
-        cudaMemset(d_results, 0xFF, h_sEYZX * sizeof(float));
-        
-        // 计算V(t)
-        // t = -1;
-        WEYZX_kernel<<<grid, block>>>(0, t, d_rng_states, l, a3, P_tau_t);
+        // 初始化 d_results 为 -INFINITY，避免 NaN 传播，便于随后取最大值
+        // 计算 W 的最大值到 d_results
+        WEYZX_kernel<<<grid, block>>>(0, t, T, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
-
-        // 优化：d_results 已经包含最大值，V_tp1_kernel 只需要简单处理
+        
+        // 合成边界并写入 surface
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
-        CUDA_CHECK(cudaDeviceSynchronize()); // runtime
 
 
     }
 
+    CUDA_CHECK(cudaDeviceSynchronize()); // 同步一次，保证前序内核完成
     copy_cudaarray_to_vtp1();
 
     float out1, out2, out3, out4, out5, out6, out7, out8;

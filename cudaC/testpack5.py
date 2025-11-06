@@ -1,15 +1,15 @@
 import compute_l
 import time
 compute_l.init_global_config(
-        0, 500, 251,
-        0, 500, 251,
+        0, 500, 501,
+        0, 500, 501,
         0, 100, 26,
         0, 1,   2,
-        0, 500, 21,
+        0, 500, 251,
         0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
-# CUDA_VISIBLE_DEVICES=1 nohup python testpack5.py >> male5_test.log 2>&1 &
+# CUDA_VISIBLE_DEVICES=0 nohup python testpack5.py >> male5_test.log 2>&1 &
 
 initial_l = 0.057128
 # initial_l = 0.055466

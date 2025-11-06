@@ -6,7 +6,7 @@ compute_l.init_global_config(
         0, 100, 29,
         0, 1,   2,
         0, 1400, 785,
-        0.15, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
+        0.15, 0.025, 0.05, 0.05, 0.2, 10, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
 # CUDA_VISIBLE_DEVICES=3 nohup python testpack14.py >> male14_test.log 2>&1 &
