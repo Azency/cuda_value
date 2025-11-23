@@ -94,6 +94,33 @@ __host__ int h_IDX_V(int e, int y, int z, int x){
 }
 
 
+// 检查并恢复CUDA设备
+static void check_and_recover_device() {
+    int deviceCount = 0;
+    cudaError_t err = cudaGetDeviceCount(&deviceCount);
+    
+    if (err != cudaSuccess || deviceCount == 0) {
+        fprintf(stderr, "ERROR: No CUDA-capable device detected. Error: %s\n", 
+                cudaGetErrorString(err));
+        // 尝试重置设备
+        cudaDeviceReset();
+        // 再次检查
+        err = cudaGetDeviceCount(&deviceCount);
+        if (err != cudaSuccess || deviceCount == 0) {
+            fprintf(stderr, "FATAL: Cannot recover CUDA device. Exiting.\n");
+            exit(EXIT_FAILURE);
+        }
+        fprintf(stderr, "WARNING: CUDA device recovered after reset.\n");
+    }
+    
+    // 确保设备已设置
+    int currentDevice = -1;
+    cudaGetDevice(&currentDevice);
+    if (currentDevice < 0) {
+        cudaSetDevice(0);
+    }
+}
+
 void init_global_config(
     float min_X, float max_X, int size_X,
     float min_Y, float max_Y, int size_Y,
@@ -102,6 +129,8 @@ void init_global_config(
     float min_W, float max_W, int size_W,
     float a1, float a2, float r, float mu, float sigma, int motecalo_nums, float p, float initial_investment
 ){
+    // 在初始化前检查设备
+    check_and_recover_device();
     
     h_A1 = a1;
     cudaMemcpyToSymbolAsync(d_A1, &h_A1, sizeof(float));
@@ -179,6 +208,9 @@ void init_global_config(
 }
 
 void init_global_XYZEW_V() {
+    // 在初始化前检查设备
+    check_and_recover_device();
+    
    // 初始化XYZEW_V
     float *h_X = (float *)malloc(h_SIZE_X * sizeof(float));
     float *h_Y = (float *)malloc(h_SIZE_Y * sizeof(float));
@@ -486,13 +518,15 @@ __global__ void WEYZX_kernel(int offset, int t, int T, float l, float a3, float 
     int E = d_d_E[index_e];
 
     float min_ZYt_base = fminf(Z, Y);
-    const float invX  = __frcp_rn(X);
+    const float invX = (X != 0.0f) ? __frcp_rn(X) : 0.0f;
     float best = -INFINITY;
+    bool has_valid_w = false;
 
     // 每线程本地 RNG 状态（跨 t 推进；w 维度作为额外偏移）
     for (int index_w = 0; index_w < d_SIZE_W; ++index_w) {
         float W = d_d_W[index_w];
         if (W > Y) continue;
+        has_valid_w = true;
 
         float XmW = fmaxf(X - W, 0.0f);
         bool  wz  = (W == 0);
@@ -534,6 +568,13 @@ __global__ void WEYZX_kernel(int offset, int t, int T, float l, float a3, float 
         fWt *= (t != 0);
         float result = d_temp / d_MOTECALO_NUMS + fWt;
         best = fmaxf(best, result);
+    }
+
+    // 如果所有 W 值都被跳过，使用一个合理的默认值
+    // 这应该很少发生，但为了安全起见，我们使用边界值
+    if (!has_valid_w) {
+        // 如果没有有效的 W 值，使用边界条件：max(X, Y - A1*(Y - min(Z,Y)))
+        best = fmaxf(fmaxf(Y - d_A1 * (Y - min_ZYt_base), X), 0.0f);
     }
 
     // 写回 (E,Y,Z,X) 的最大值，后续由 V_tp1_kernel 合成边界再写 surface
@@ -664,6 +705,9 @@ __global__ void test_array_kernel(cudaTextureObject_t texObj0, cudaTextureObject
 
 
 float compute_l(float l, float * trans_tau_d, int T) {
+    // 在计算前检查设备
+    check_and_recover_device();
+    
     float a3 = 1.00/(T/h_P);
 
     // 这一段后续优化为宏
@@ -703,18 +747,22 @@ float compute_l(float l, float * trans_tau_d, int T) {
         float P_tau_t = trans_tau_d[t];
         
         // 初始化 d_results 为 -INFINITY，避免 NaN 传播，便于随后取最大值
+        init_results_neg_inf<<<grid, block>>>(d_results, h_sEYZX);
+        CUDA_CHECK(cudaGetLastError());
+        CUDA_CHECK(cudaDeviceSynchronize()); // 同步以确保内核完成并捕获运行时错误
+        
         // 计算 W 的最大值到 d_results
         WEYZX_kernel<<<grid, block>>>(0, t, T, l, a3, P_tau_t);
         CUDA_CHECK(cudaGetLastError());     // launch
+        CUDA_CHECK(cudaDeviceSynchronize()); // 同步以确保内核完成并捕获运行时错误
         
         // 合成边界并写入 surface
         V_tp1_kernel<<<grid2, block2>>>(0, t);
         CUDA_CHECK(cudaGetLastError());     // launch
+        CUDA_CHECK(cudaDeviceSynchronize()); // 同步以确保内核完成并捕获运行时错误
 
 
     }
-
-    CUDA_CHECK(cudaDeviceSynchronize()); // 同步一次，保证前序内核完成
     copy_cudaarray_to_vtp1();
 
     float out1, out2, out3, out4, out5, out6, out7, out8;

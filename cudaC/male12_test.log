@@ -1,7 +1,0 @@
-nohup: 忽略输入
-Info: h_sWEYZX (9605001650) exceeds int32 maximum, but code uses safe calculation (h_SIZE_W * h_sEYZX)
-  Grid size calculation is correct. Kernels use d_SIZE_W * d_sEYZX for boundary checks.
-  This is safe and will not affect calculation results.
-Info: h_sWEYZX (9605001650) exceeds int32 maximum, but kernels use safe bounds (SIZE_W*sEYZX)
-  size_W=577, size_E=2, size_Y=577, size_Z=25, size_X=577, sEYZX=16646450
-  This is safe and will not affect calculation results.
