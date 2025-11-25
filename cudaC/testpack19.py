@@ -1,31 +1,38 @@
 import compute_l
 import time
 compute_l.init_global_config(
-        0, 400, 257,
-        0, 400, 257,
-        0, 100, 33,
+        0, 1900, 1445,
+        0, 1900, 723,
+        0, 100, 20,
         0, 1,   2,
-        0, 100, 33,
+        0, 100, 20,
         0.1, 0.025, 0.05, 0.05, 0.2, 100000, 1, 100.0)
 
 compute_l.init_global_XYZEW_V()
 # female
-# CUDA_VISIBLE_DEVICES=1 nohup python testpack4.py >> female4_test.log 2>&1 &
-initial_l = 0.060605
+# CUDA_VISIBLE_DEVICES=0 nohup python testpack19.py >> female19_test.log 2>&1 &
+initial_l = 0.030799
 # female {0.99320371, 0.99275112, 0.99205837, 0.99139464, 0.99058581, 0.98970493, 0.98867356, 0.98749117, 0.98610283, 0.98447572, 0.98255486, 0.98028799, 0.97760967, 0.9744482, 0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776, 0.93969821};
-live_list = [0.96115395, 0.95508318, 0.9479776, 0.93969821]
+live_list = [0.99275112, 0.99205837, 0.99139464, 0.99058581, 0.98970493, 0.98867356, 0.98749117, 0.98610283, 0.98447572, 0.98255486, 0.98028799, 0.97760967, 0.9744482, 0.97071873, 0.96632442, 0.96115395, 0.95508318, 0.9479776, 0.93969821]
 
 # male
-# CUDA_VISIBLE_DEVICES=1 nohup python testpack4.py >> male4_test.log 2>&1 &
-# initial_l = 0.061789
+# CUDA_VISIBLE_DEVICES=0 nohup python testpack19.py >> male19_test.log 2>&1 &
+# initial_l = 0.030873
 # male {0.98919799, 0.98850676, 0.98755648, 0.98662116, 0.98551021, 0.98429417, 0.98286998, 0.98122165, 0.97926787, 0.97695839, 0.97422256, 0.97100599, 0.96725252, 0.96291495, 0.95794281,0.95227777, 0.9458399, 0.938519, 0.93016787, 0.92060485}
-# live_list = [0.9458399, 0.938519, 0.93016787, 0.92060485]
+# live_list = [0.98850676, 0.98755648, 0.98662116, 0.98551021, 0.98429417, 0.98286998, 0.98122165, 0.97926787, 0.97695839, 0.97422256, 0.97100599, 0.96725252, 0.96291495, 0.95794281,0.95227777, 0.9458399, 0.938519, 0.93016787, 0.92060485]
 
 print(f'T = {len(live_list)}, initial_l is {initial_l}')
 
 time_start = time.time()
 out = compute_l.compute_l(initial_l, live_list)
 
+# compute_l.reset_Vtp1()
+
+# compute_l.compute_l(initial_l, live_list)
+
+# compute_l.reset_Vtp1()
+
+# compute_l.compute_l(initial_l, live_list)
 
 time_end = time.time()
 print("time used: ", time_end - time_start)

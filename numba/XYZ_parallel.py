@@ -221,8 +221,8 @@ def XYZEW_kernel(offset, d_results, rng_states, d_P_tau, l, a3, t, d_V, d_X, d_Y
         Y_tp1 = min(Y_tp1, max_Y)
         Z_tp1 = min(Z_tp1, max_Z)
 
-        P_tau_tp1 = d_P_tau[0] # 这个是P(tau=t+1)时刻的值
-        P_tau_gep_tp1 = d_P_tau[1] # 这个是P(tau>=t+1)时刻的值
+        P_tau_tp1 = d_P_tau[0] # 条件死亡概率: P(tau=t+1 | tau>t)
+        P_tau_gep_tp1 = d_P_tau[1] # 条件存活概率: P(tau>=t+1 | tau>t)
     
         for i in range(motecalo_nums):
             random = xoroshiro128p_normal_float32(rng_states, idx)
@@ -338,7 +338,10 @@ def compute_l(l, index, trans_tau_d, rng_states):
     print(f"T ={T}, l={l}, a3={a3}")
 
     for t in range(T-1, -1, -1):
-        P_tau_t = [1-trans_tau_d[t], trans_tau_d[t]]#trans_tau_d存活概率
+        # trans_tau_d[t] 是条件存活概率 P(存活到t+1 | 存活到t)
+        # P_tau_t[0] = 条件死亡概率 P(tau=t+1 | tau>t)
+        # P_tau_t[1] = 条件存活概率 P(tau>=t+1 | tau>t)
+        P_tau_t = [1-trans_tau_d[t], trans_tau_d[t]]
         V_iteration(l, t, a3, P_tau_t, d_V_tp1, rng_states)
 
     print(f"索引1,{index[0][0], index[0][1], index[0][2], index[0][3]}")
